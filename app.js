@@ -417,6 +417,13 @@ const App = {
       authEl.style.display = 'flex';
       authEl.style.opacity = '1';
       authEl.style.pointerEvents = 'auto';
+      authEl.classList.remove('auth-hidden');
+    }
+    const appEl = document.getElementById('app');
+    if (appEl) {
+      appEl.style.display = 'none';
+      appEl.style.pointerEvents = 'none';
+      appEl.classList.add('app-hidden');
     }
     this.switchAuthTab('signin');
   },
@@ -732,13 +739,13 @@ const App = {
       authEl.style.transition = 'all 0.3s ease';
       setTimeout(() => {
         authEl.style.display = 'none';
-        if (authEl.parentNode) authEl.parentNode.removeChild(authEl);
       }, 300);
     }
     const appEl = document.getElementById('app');
     if (appEl) {
       appEl.style.display = 'flex';
       appEl.style.pointerEvents = 'auto';
+      appEl.classList.remove('app-hidden');
     }
     this.navigate('dashboard');
     if (typeof Chatbot !== 'undefined') Chatbot.init();

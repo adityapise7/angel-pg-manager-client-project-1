@@ -87,11 +87,19 @@ body {
   max-width: 100% !important;
   min-height: 100vh !important;
   min-height: 100dvh !important;
-  display: flex !important;
+  display: flex;
   flex-direction: row !important;
   background: var(--bg-primary) !important;
   position: relative !important;
   box-sizing: border-box !important;
+}
+
+#app[style*="display: none"],
+#app.app-hidden {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
 }
 
 /* Desktop Sidebar */
