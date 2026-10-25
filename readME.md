@@ -1,3 +1,4 @@
+AdiNick
 # Angel's PG Management System
 
 Premium PG & Hostel Management software with multi-device real-time Supabase cloud synchronization, account authentication, and native Android application support.
