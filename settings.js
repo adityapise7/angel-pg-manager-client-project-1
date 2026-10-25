@@ -182,27 +182,66 @@ const Settings = {
           </div>
         </div>
 
-        <!-- Security -->
+        <!-- Supabase Cloud Account & Synchronization -->
         <div class="settings-section">
-          <div class="settings-label">🔐 Security</div>
-          <div class="settings-item" onclick="Settings.changePassword()">
-            <div class="settings-item-icon" style="background:var(--accent-red-light)">🔐</div>
+          <div class="settings-label">☁️ Cloud Account &amp; Synchronization</div>
+          <div class="settings-item">
+            <div class="settings-item-icon" style="background:var(--accent-blue-light)">☁️</div>
             <div class="settings-item-info">
-              <div class="settings-item-title">Change PIN</div>
-              <div class="settings-item-sub">Update your 4-digit PIN</div>
+              <div class="settings-item-title">Supabase Cloud Account</div>
+              <div class="settings-item-sub" id="settings-account-email">${(window.AuthManager && window.AuthManager.getUser()?.email) || 'Not signed in'}</div>
+            </div>
+            <span class="badge ${window.CloudDB && window.CloudDB.syncStatus === 'synced' ? 'green' : ''}" style="font-size:11px;font-weight:700">
+              ${(window.CloudDB && window.CloudDB.syncStatus === 'synced') ? '☁️ Synced' : '🟢 Online'}
+            </span>
+          </div>
+          <div class="settings-item" onclick="Settings.syncCloudNow()">
+            <div class="settings-item-icon" style="background:var(--accent-green-light)">🔄</div>
+            <div class="settings-item-info">
+              <div class="settings-item-title">Sync with Cloud Now</div>
+              <div class="settings-item-sub">Upload latest rooms, beds, tenants, and payments</div>
+            </div>
+            <span class="settings-item-value">›</span>
+          </div>
+          <div class="settings-item" onclick="Settings.changeCloudPassword()">
+            <div class="settings-item-icon" style="background:var(--accent-amber-light)">🔑</div>
+            <div class="settings-item-info">
+              <div class="settings-item-title">Change Account Password</div>
+              <div class="settings-item-sub">Update your cloud account login password</div>
+            </div>
+            <span class="settings-item-value">›</span>
+          </div>
+          <div class="settings-item" onclick="AuthManager.signOut()">
+            <div class="settings-item-icon" style="background:var(--accent-red-light)">🚪</div>
+            <div class="settings-item-info">
+              <div class="settings-item-title" style="color:var(--accent-red)">Sign Out</div>
+              <div class="settings-item-sub">Log out of your cloud account on this device</div>
             </div>
             <span class="settings-item-value">›</span>
           </div>
         </div>
 
-        <!-- Data -->
+        <!-- Security -->
         <div class="settings-section">
-          <div class="settings-label">💾 Data Management</div>
+          <div class="settings-label">🔐 Security</div>
+          <div class="settings-item" onclick="Settings.changePassword()">
+            <div class="settings-item-icon" style="background:var(--accent-purple-light)">🔢</div>
+            <div class="settings-item-info">
+              <div class="settings-item-title">Device Screen Lock (4-Digit PIN)</div>
+              <div class="settings-item-sub">Configure optional quick PIN lock</div>
+            </div>
+            <span class="settings-item-value">›</span>
+          </div>
+        </div>
+
+        <!-- Data Management -->
+        <div class="settings-section">
+          <div class="settings-label">💾 Data Backup &amp; Migration</div>
           <div class="settings-item" onclick="Settings.exportData()">
             <div class="settings-item-icon" style="background:var(--accent-blue-light)">📤</div>
             <div class="settings-item-info">
-              <div class="settings-item-title">Export Data</div>
-              <div class="settings-item-sub">Download backup as JSON</div>
+              <div class="settings-item-title">Export Local Backup</div>
+              <div class="settings-item-sub">Download JSON copy with photos &amp; QR</div>
             </div>
             <span class="settings-item-value">›</span>
           </div>
@@ -225,8 +264,8 @@ const Settings = {
         </div>
 
         <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:12px">
-          Angel's PG Management v1.0<br>
-          All data stored locally on your device
+          Angel's PG Management v2.0 · Cloud Edition<br>
+          Connected to Supabase · Row Level Security (RLS) Active
         </div>
       </div>
     `;
@@ -438,6 +477,86 @@ const Settings = {
         }
       }
     };
+  },
+
+  async syncCloudNow() {
+    if (!window.AuthManager || !window.AuthManager.isAuthenticated()) {
+      showToast('⚠️ Please sign in to your Supabase Cloud account first', 'error');
+      return;
+    }
+    const user = window.AuthManager.getUser();
+    showToast('🔄 Synchronizing PG data with Supabase Cloud...', 'info');
+    try {
+      if (window.CloudDB) {
+        await window.CloudDB.pushLocalDataToCloud(user.id);
+        await window.CloudDB.pullAllData(user.id);
+      }
+      showToast('✅ Cloud synchronization complete!', 'success');
+      this.render();
+    } catch (err) {
+      console.error('[Settings] Cloud sync error:', err);
+      showToast('Sync error: ' + (err.message || 'Check your connection'), 'error');
+    }
+  },
+
+  changeCloudPassword() {
+    if (!window.AuthManager || !window.AuthManager.isAuthenticated()) {
+      showToast('⚠️ Please sign in to your cloud account first', 'error');
+      return;
+    }
+
+    showModal('Change Account Password', `
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <p style="font-size:0.9rem;color:var(--text-secondary);line-height:1.4;">
+          Enter a new password for your Angel PG Cloud account (${window.AuthManager.getUser().email}).
+        </p>
+        <div class="form-group">
+          <label class="form-label">New Password</label>
+          <input type="password" id="new-cloud-pass" class="form-control" placeholder="At least 6 characters" minlength="6">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirm New Password</label>
+          <input type="password" id="confirm-cloud-pass" class="form-control" placeholder="Confirm password" minlength="6">
+        </div>
+        <div id="cloud-pass-error" style="color:var(--accent-red);font-size:0.85rem;display:none;"></div>
+        <button type="button" class="btn btn-primary" id="btn-save-cloud-pass" style="padding:0.75rem;" onclick="Settings._submitNewCloudPassword()">
+          Update Password
+        </button>
+      </div>
+    `);
+  },
+
+  async _submitNewCloudPassword() {
+    const p1 = document.getElementById('new-cloud-pass')?.value;
+    const p2 = document.getElementById('confirm-cloud-pass')?.value;
+    const errEl = document.getElementById('cloud-pass-error');
+    const btn = document.getElementById('btn-save-cloud-pass');
+
+    if (errEl) errEl.style.display = 'none';
+
+    if (!p1 || p1.length < 6) {
+      if (errEl) { errEl.textContent = 'Password must be at least 6 characters'; errEl.style.display = 'block'; }
+      return;
+    }
+    if (p1 !== p2) {
+      if (errEl) { errEl.textContent = 'Passwords do not match'; errEl.style.display = 'block'; }
+      return;
+    }
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Updating...'; }
+
+    try {
+      await window.AuthManager.updatePassword(p1);
+      closeModal();
+      showToast('✅ Account password updated successfully!', 'success');
+    } catch (err) {
+      if (errEl) {
+        errEl.textContent = err.message || 'Failed to update password';
+        errEl.style.display = 'block';
+      }
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Update Password'; }
+    }
   },
 
   // ── DATA MANAGEMENT ────────────────────────────────────────

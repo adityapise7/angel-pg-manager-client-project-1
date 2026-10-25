@@ -273,11 +273,24 @@ const App = {
     // Apply dark mode immediately
     if (DB.getDarkMode()) document.documentElement.setAttribute('data-theme', 'dark');
 
-    if (!DB.isInitialized()) {
-      this.showSetupPin();
-    } else {
-      this.showAuthPin();
+    // Initialize Supabase Cloud Auth
+    if (window.AuthManager && typeof window.AuthManager.init === 'function') {
+      try {
+        await window.AuthManager.init();
+        if (window.AuthManager.isAuthenticated()) {
+          const user = window.AuthManager.getUser();
+          console.log('[App] Restored existing Supabase session for:', user.email);
+          window.AuthManager.updateUserUI(user);
+          this.unlockApp();
+          return;
+        }
+      } catch (err) {
+        console.warn('[App] Supabase Auth initialization error:', err);
+      }
     }
+
+    // Display Email & Password Auth Screen
+    this.showEmailAuth();
   },
 
   initSplash() {
@@ -397,26 +410,239 @@ const App = {
     this.syncGlobalBranding();
   },
 
-  // ── AUTH: SETUP PIN ──────────────────────────────────────
-  showSetupPin() {
-    document.getElementById('auth-title').textContent = "Welcome to Angel's PG Management";
-    document.getElementById('auth-subtitle').textContent = 'Create your 4-digit security PIN';
-    this.pinBuffer = '';
-    this._pinStep = 'setup1';
-    this._setupPin1 = '';
-    this.updatePinDots();
+  // ── SUPABASE EMAIL & PASSWORD AUTH METHODS ────────────────
+  showEmailAuth() {
+    const authEl = document.getElementById('auth-screen');
+    if (authEl) {
+      authEl.style.display = 'flex';
+      authEl.style.opacity = '1';
+      authEl.style.pointerEvents = 'auto';
+    }
+    this.switchAuthTab('signin');
   },
 
-  // ── AUTH: ENTER PIN ──────────────────────────────────────
-  showAuthPin() {
-    if (typeof WhatsApp !== 'undefined' && WhatsApp.resetSessionIndicators) {
-      WhatsApp.resetSessionIndicators();
+  switchAuthTab(tab) {
+    if (typeof SoundFX !== 'undefined' && SoundFX.buttonClick) SoundFX.buttonClick();
+    this.clearAuthAlerts();
+
+    const signinBtn = document.getElementById('tab-auth-signin');
+    const signupBtn = document.getElementById('tab-auth-signup');
+    const signinForm = document.getElementById('form-auth-signin');
+    const signupForm = document.getElementById('form-auth-signup');
+    const forgotBox = document.getElementById('box-auth-forgot');
+
+    if (forgotBox) forgotBox.style.display = 'none';
+
+    if (tab === 'signup') {
+      if (signinBtn) { signinBtn.classList.remove('active'); signinBtn.setAttribute('aria-selected', 'false'); }
+      if (signupBtn) { signupBtn.classList.add('active'); signupBtn.setAttribute('aria-selected', 'true'); }
+      if (signinForm) signinForm.style.display = 'none';
+      if (signupForm) signupForm.style.display = 'block';
+    } else {
+      if (signupBtn) { signupBtn.classList.remove('active'); signupBtn.setAttribute('aria-selected', 'false'); }
+      if (signinBtn) { signinBtn.classList.add('active'); signinBtn.setAttribute('aria-selected', 'true'); }
+      if (signupForm) signupForm.style.display = 'none';
+      if (signinForm) signinForm.style.display = 'block';
     }
-    document.getElementById('auth-title').textContent = "Angel's PG Management";
-    document.getElementById('auth-subtitle').textContent = 'Enter your PIN to continue';
-    this.pinBuffer = '';
-    this._pinStep = 'auth';
-    this.updatePinDots();
+  },
+
+  showForgotPasswordBox() {
+    this.clearAuthAlerts();
+    const signinForm = document.getElementById('form-auth-signin');
+    const signupForm = document.getElementById('form-auth-signup');
+    const forgotBox = document.getElementById('box-auth-forgot');
+
+    if (signinForm) signinForm.style.display = 'none';
+    if (signupForm) signupForm.style.display = 'none';
+    if (forgotBox) forgotBox.style.display = 'block';
+
+    const currentEmail = document.getElementById('signin-email')?.value;
+    const forgotEmail = document.getElementById('forgot-email');
+    if (forgotEmail && currentEmail) forgotEmail.value = currentEmail;
+  },
+
+  hideForgotPasswordBox() {
+    this.switchAuthTab('signin');
+  },
+
+  togglePasswordVisibility(inputId, btnEl) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const isPass = input.type === 'password';
+    input.type = isPass ? 'text' : 'password';
+    if (btnEl) btnEl.textContent = isPass ? '🙈' : '👁️';
+  },
+
+  showAuthError(msg) {
+    const banner = document.getElementById('auth-error-banner');
+    const textEl = document.getElementById('auth-error-text');
+    const successBanner = document.getElementById('auth-success-banner');
+    if (successBanner) successBanner.style.display = 'none';
+
+    if (banner && textEl) {
+      textEl.textContent = msg || 'An error occurred during authentication';
+      banner.style.display = 'flex';
+    }
+    try { if (typeof SoundFX !== 'undefined' && SoundFX.error) SoundFX.error(); } catch (e) {}
+  },
+
+  showAuthSuccess(msg) {
+    const banner = document.getElementById('auth-success-banner');
+    const textEl = document.getElementById('auth-success-text');
+    const errorBanner = document.getElementById('auth-error-banner');
+    if (errorBanner) errorBanner.style.display = 'none';
+
+    if (banner && textEl) {
+      textEl.textContent = msg;
+      banner.style.display = 'flex';
+    }
+    try { if (typeof SoundFX !== 'undefined' && SoundFX.pinSuccess) SoundFX.pinSuccess(); } catch (e) {}
+  },
+
+  clearAuthAlerts() {
+    const errorBanner = document.getElementById('auth-error-banner');
+    const successBanner = document.getElementById('auth-success-banner');
+    if (errorBanner) errorBanner.style.display = 'none';
+    if (successBanner) successBanner.style.display = 'none';
+  },
+
+  async handleEmailSignIn(event) {
+    event.preventDefault();
+    this.clearAuthAlerts();
+
+    const email = document.getElementById('signin-email')?.value;
+    const password = document.getElementById('signin-password')?.value;
+    const submitBtn = document.getElementById('btn-submit-signin');
+    const btnText = submitBtn?.querySelector('.btn-text');
+    const btnSpinner = submitBtn?.querySelector('.btn-spinner');
+
+    if (btnText && btnSpinner) {
+      btnText.style.display = 'none';
+      btnSpinner.style.display = 'inline';
+      submitBtn.disabled = true;
+    }
+
+    try {
+      if (!window.AuthManager) throw new Error('Authentication manager is not initialized');
+      await window.AuthManager.signInWithEmail(email, password);
+      this.showAuthSuccess('Signed in successfully! Loading your PG workspace...');
+      setTimeout(() => {
+        this.unlockApp();
+      }, 500);
+    } catch (err) {
+      console.error('[App] Sign In error:', err);
+      let errorMsg = err.message || 'Invalid email or password';
+      if (errorMsg.includes('Invalid login credentials')) {
+        errorMsg = 'Incorrect email or password. Please try again or create an account.';
+      } else if (errorMsg.includes('Email not confirmed')) {
+        errorMsg = 'Please verify your email address before signing in.';
+      }
+      this.showAuthError(errorMsg);
+    } finally {
+      if (btnText && btnSpinner) {
+        btnText.style.display = 'inline';
+        btnSpinner.style.display = 'none';
+        submitBtn.disabled = false;
+      }
+    }
+  },
+
+  async handleEmailSignUp(event) {
+    event.preventDefault();
+    this.clearAuthAlerts();
+
+    const name = document.getElementById('signup-name')?.value;
+    const email = document.getElementById('signup-email')?.value;
+    const password = document.getElementById('signup-password')?.value;
+    const confirm = document.getElementById('signup-confirm')?.value;
+    const submitBtn = document.getElementById('btn-submit-signup');
+    const btnText = submitBtn?.querySelector('.btn-text');
+    const btnSpinner = submitBtn?.querySelector('.btn-spinner');
+
+    if (password !== confirm) {
+      this.showAuthError("Passwords do not match. Please re-enter.");
+      return;
+    }
+
+    if (password.length < 6) {
+      this.showAuthError("Password must be at least 6 characters.");
+      return;
+    }
+
+    if (btnText && btnSpinner) {
+      btnText.style.display = 'none';
+      btnSpinner.style.display = 'inline';
+      submitBtn.disabled = true;
+    }
+
+    try {
+      if (!window.AuthManager) throw new Error('Authentication manager is not initialized');
+      const data = await window.AuthManager.signUpWithEmail(email, password, name);
+      
+      if (data.session) {
+        this.showAuthSuccess('Account created! Welcome to Angel PG Cloud.');
+        setTimeout(() => {
+          this.unlockApp();
+        }, 600);
+      } else {
+        this.showAuthSuccess('Account created! Check your email to verify your registration, then sign in.');
+      }
+    } catch (err) {
+      console.error('[App] Sign Up error:', err);
+      let errorMsg = err.message || 'Registration failed';
+      if (errorMsg.includes('User already registered')) {
+        errorMsg = 'An account with this email already exists. Please sign in instead.';
+      }
+      this.showAuthError(errorMsg);
+    } finally {
+      if (btnText && btnSpinner) {
+        btnText.style.display = 'inline';
+        btnSpinner.style.display = 'none';
+        submitBtn.disabled = false;
+      }
+    }
+  },
+
+  async handleSendResetLink() {
+    this.clearAuthAlerts();
+    const email = document.getElementById('forgot-email')?.value;
+    const submitBtn = document.getElementById('btn-send-reset');
+    const btnText = submitBtn?.querySelector('.btn-text');
+    const btnSpinner = submitBtn?.querySelector('.btn-spinner');
+
+    if (!email) {
+      this.showAuthError('Please enter your email address');
+      return;
+    }
+
+    if (btnText && btnSpinner) {
+      btnText.style.display = 'none';
+      btnSpinner.style.display = 'inline';
+      submitBtn.disabled = true;
+    }
+
+    try {
+      await window.AuthManager.sendPasswordReset(email);
+      this.showAuthSuccess('Password recovery link sent! Please check your email.');
+    } catch (err) {
+      console.error('[App] Reset link error:', err);
+      this.showAuthError(err.message || 'Failed to send recovery link.');
+    } finally {
+      if (btnText && btnSpinner) {
+        btnText.style.display = 'inline';
+        btnSpinner.style.display = 'none';
+        submitBtn.disabled = false;
+      }
+    }
+  },
+
+  // ── OPTIONAL FALLBACK PIN HELPERS ─────────────────────────
+  showSetupPin() {
+    this.showEmailAuth();
+  },
+
+  showAuthPin() {
+    this.showEmailAuth();
   },
 
   // ── PIN KEY PRESS ────────────────────────────────────────

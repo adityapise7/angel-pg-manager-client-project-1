@@ -10,9 +10,11 @@
   <title>Angel's PG Management</title>
   <link rel="icon" type="image/png" href="angel-logo.png">
   <link rel="apple-touch-icon" href="angel-logo.png">
-  <link rel="stylesheet" href="style.css?v=4">
-  <link rel="stylesheet" href="responsive.css?v=4">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="responsive.css?v=5">
+  <script src="/env.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <!-- Mobile Verification System -->
   <!-- (No external QR libraries needed — uses WhatsApp OTP) -->
 </head>
@@ -72,84 +74,140 @@
     </div>
   </div>
 
-  <!-- ══ AUTH SCREEN ══════════════════════════════════════════ -->
-  <script>
-    function pressPinKey(k) {
-      if (window.App && typeof window.App.pressKey === 'function') {
-        window.App.pressKey(k);
-        return;
-      }
-      window._fallbackPinBuffer = window._fallbackPinBuffer || '';
-      if (k === '⌫') {
-        window._fallbackPinBuffer = window._fallbackPinBuffer.slice(0, -1);
-      } else if (window._fallbackPinBuffer.length < 4) {
-        window._fallbackPinBuffer += k;
-      }
-      for (let i = 0; i < 4; i++) {
-        const dot = document.getElementById('dot-' + i);
-        if (dot) dot.className = 'pin-dot' + (i < window._fallbackPinBuffer.length ? ' filled' : '');
-      }
-      if (window._fallbackPinBuffer.length === 4) {
-        setTimeout(async () => {
-          if (window.App && typeof window.App.handlePinComplete === 'function') {
-            window.App.pinBuffer = window._fallbackPinBuffer;
-            window._fallbackPinBuffer = '';
-            await window.App.handlePinComplete();
-          } else {
-            const authEl = document.getElementById('auth-screen');
-            const appEl = document.getElementById('app');
-            if (authEl) {
-              authEl.style.pointerEvents = 'none';
-              authEl.style.display = 'none';
-              if (authEl.parentNode) authEl.parentNode.removeChild(authEl);
-            }
-            if (appEl) {
-              appEl.style.display = 'flex';
-              appEl.style.pointerEvents = 'auto';
-            }
-          }
-        }, 120);
-      }
-    }
-  </script>
+  <!-- ══ SUPABASE EMAIL & PASSWORD AUTH SCREEN ═════════════════ -->
   <div id="auth-screen">
-    <div class="auth-inner-card">
-
-    <div class="rudra-startup-wrap">
-      <div class="rudra-auth-logo-card" title="Angel's PG Management">
-        <div class="rudra-auth-logo-glow"></div>
-        <img src="angel-logo.png" alt="Angel's PG Management Logo" class="rudra-auth-logo-img">
+    <div class="auth-card" id="auth-main-card">
+      <!-- Brand Logo Header -->
+      <div class="auth-brand-header">
+        <div class="auth-logo-card">
+          <div class="auth-logo-glow"></div>
+          <img src="angel-logo.png" alt="Angel's PG Management Logo" class="auth-logo-img" id="auth-logo-img">
+        </div>
+        <h1 class="auth-title">Angel's PG Management</h1>
+        <p class="auth-subtitle">Cloud Property &amp; Tenant Management Suite</p>
       </div>
-    </div>
-    <h1 class="auth-title" id="auth-title">Angel's PG Management</h1>
-    <p class="auth-subtitle" id="auth-subtitle">Enter your PIN to continue</p>
 
-    <!-- PIN Dots -->
-    <div class="pin-display">
-      <div class="pin-dot" id="dot-0"></div>
-      <div class="pin-dot" id="dot-1"></div>
-      <div class="pin-dot" id="dot-2"></div>
-      <div class="pin-dot" id="dot-3"></div>
-    </div>
+      <!-- Segmented Auth Tab Switcher -->
+      <div class="auth-segmented-tabs" role="tablist">
+        <button type="button" class="auth-tab-btn active" id="tab-auth-signin" onclick="App.switchAuthTab('signin')" role="tab" aria-selected="true">
+          Sign In
+        </button>
+        <button type="button" class="auth-tab-btn" id="tab-auth-signup" onclick="App.switchAuthTab('signup')" role="tab" aria-selected="false">
+          Create Account
+        </button>
+      </div>
 
-    <!-- PIN Pad -->
-    <div class="pin-pad">
-      <button type="button" class="pin-btn" onclick="pressPinKey('1')">1</button>
-      <button type="button" class="pin-btn" onclick="pressPinKey('2')">2</button>
-      <button type="button" class="pin-btn" onclick="pressPinKey('3')">3</button>
-      <button type="button" class="pin-btn" onclick="pressPinKey('4')">4</button>
-      <button type="button" class="pin-btn" onclick="pressPinKey('5')">5</button>
-      <button type="button" class="pin-btn" onclick="pressPinKey('6')">6</button>
-      <button type="button" class="pin-btn" onclick="pressPinKey('7')">7</button>
-      <button type="button" class="pin-btn" onclick="pressPinKey('8')">8</button>
-      <button type="button" class="pin-btn" onclick="pressPinKey('9')">9</button>
-      <div></div>
-      <button type="button" class="pin-btn" onclick="pressPinKey('0')">0</button>
-      <button type="button" class="pin-btn delete" onclick="pressPinKey('⌫')">⌫</button>
-    </div>
+      <!-- Alert Notification Banners -->
+      <div id="auth-error-banner" class="auth-banner error" style="display: none;">
+        <span class="banner-icon">⚠️</span>
+        <span class="banner-text" id="auth-error-text"></span>
+      </div>
+      <div id="auth-success-banner" class="auth-banner success" style="display: none;">
+        <span class="banner-icon">✅</span>
+        <span class="banner-text" id="auth-success-text"></span>
+      </div>
 
-    
-      <div class="auth-error" id="auth-error"></div>
+      <!-- 1. SIGN IN FORM -->
+      <form id="form-auth-signin" class="auth-form-panel" onsubmit="App.handleEmailSignIn(event)">
+        <div class="form-group">
+          <label class="form-label" for="signin-email">Email Address</label>
+          <div class="input-with-icon">
+            <span class="input-icon">✉️</span>
+            <input type="email" id="signin-email" class="form-control" placeholder="owner@angelpg.com" autocomplete="email" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label class="form-label" for="signin-password" style="margin-bottom: 0;">Password</label>
+            <a href="javascript:void(0)" class="auth-link-forgot" onclick="App.showForgotPasswordBox()">Forgot?</a>
+          </div>
+          <div class="input-with-icon">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="signin-password" class="form-control" placeholder="••••••••" autocomplete="current-password" required>
+            <button type="button" class="btn-toggle-eye" onclick="App.togglePasswordVisibility('signin-password', this)" title="Show/Hide Password">👁️</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary auth-submit-btn" id="btn-submit-signin">
+          <span class="btn-text">Sign In to Cloud Account</span>
+          <span class="btn-spinner" style="display: none;">⏳ Signing in...</span>
+        </button>
+      </form>
+
+      <!-- 2. CREATE ACCOUNT (SIGN UP) FORM -->
+      <form id="form-auth-signup" class="auth-form-panel" style="display: none;" onsubmit="App.handleEmailSignUp(event)">
+        <div class="form-group">
+          <label class="form-label" for="signup-name">Full Name / Property Owner</label>
+          <div class="input-with-icon">
+            <span class="input-icon">👤</span>
+            <input type="text" id="signup-name" class="form-control" placeholder="Aditya Pise" autocomplete="name">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="signup-email">Email Address</label>
+          <div class="input-with-icon">
+            <span class="input-icon">✉️</span>
+            <input type="email" id="signup-email" class="form-control" placeholder="owner@angelpg.com" autocomplete="email" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="signup-password">Create Password</label>
+          <div class="input-with-icon">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="signup-password" class="form-control" placeholder="Min. 6 characters" autocomplete="new-password" minlength="6" required>
+            <button type="button" class="btn-toggle-eye" onclick="App.togglePasswordVisibility('signup-password', this)" title="Show/Hide Password">👁️</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="signup-confirm">Confirm Password</label>
+          <div class="input-with-icon">
+            <span class="input-icon">🛡️</span>
+            <input type="password" id="signup-confirm" class="form-control" placeholder="Re-enter password" autocomplete="new-password" minlength="6" required>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary auth-submit-btn" id="btn-submit-signup">
+          <span class="btn-text">Create Free Cloud Account</span>
+          <span class="btn-spinner" style="display: none;">⏳ Creating...</span>
+        </button>
+      </form>
+
+      <!-- 3. FORGOT PASSWORD RECOVERY PANEL -->
+      <div id="box-auth-forgot" class="auth-form-panel" style="display: none;">
+        <div style="text-align: center; margin-bottom: 1.25rem;">
+          <h3 style="font-size: 1.15rem; color: var(--text-primary); margin-bottom: 0.35rem;">Reset Your Password</h3>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4;">
+            Enter your registered email address and we'll send you a secure password recovery link.
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="forgot-email">Registered Email</label>
+          <div class="input-with-icon">
+            <span class="input-icon">✉️</span>
+            <input type="email" id="forgot-email" class="form-control" placeholder="owner@angelpg.com">
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-primary auth-submit-btn" id="btn-send-reset" onclick="App.handleSendResetLink()">
+          <span class="btn-text">Send Reset Link</span>
+          <span class="btn-spinner" style="display: none;">⏳ Sending...</span>
+        </button>
+
+        <div style="text-align: center; margin-top: 1rem;">
+          <a href="javascript:void(0)" class="auth-back-link" onclick="App.hideForgotPasswordBox()">← Back to Sign In</a>
+        </div>
+      </div>
+
+      <!-- Cloud Architecture Security Footer -->
+      <div class="auth-security-footer">
+        <span class="auth-security-icon">🔒</span>
+        <span>Secured by Supabase Cloud · End-to-End Encrypted RLS</span>
+      </div>
     </div>
   </div>
 
@@ -237,9 +295,26 @@
       </div>
 
       <div class="sidebar-footer">
+        <!-- Cloud Account Profile Card -->
+        <div class="sidebar-user-card" id="sidebar-user-card">
+          <div class="sidebar-user-avatar">👤</div>
+          <div class="sidebar-user-details">
+            <div class="sidebar-user-name" id="sidebar-user-name">PG Owner</div>
+            <div class="sidebar-user-email" id="sidebar-user-email">owner@angelpg.com</div>
+          </div>
+          <div class="cloud-sync-badge sync-synced" id="sidebar-sync-badge" title="Supabase Cloud Sync Status">
+            <span class="sync-icon">☁️</span>
+            <span class="sync-text">Cloud</span>
+          </div>
+        </div>
+
         <button type="button" class="sidebar-theme-toggle" id="sidebar-theme-btn" onclick="Settings.toggleDark(document.documentElement.getAttribute('data-theme')!=='dark')">
           <span id="sidebar-theme-label">🌙 Dark Mode</span>
           <span id="sidebar-theme-icon">Switch</span>
+        </button>
+
+        <button type="button" class="sidebar-signout-btn" id="sidebar-signout-btn" onclick="AuthManager.signOut()" title="Sign Out of Cloud Account">
+          <span>🚪 Sign Out</span>
         </button>
       </div>
     </aside>
@@ -250,6 +325,10 @@
       <header class="app-header">
         <span class="header-title" id="header-title">🏠 Dashboard</span>
         <div class="header-actions-group">
+          <div class="cloud-sync-badge sync-synced" id="cloud-sync-status" title="Cloud Sync Status">
+            <span class="sync-icon">☁️</span>
+            <span class="sync-text">Synced</span>
+          </div>
           <button class="header-action" onclick="WhatsApp.openReminderModal()" title="WhatsApp Reminders" id="btn-wa-header">📲</button>
           <button class="header-action" onclick="Settings.toggleDark(document.documentElement.getAttribute('data-theme')!=='dark')" title="Toggle Theme" id="btn-theme-header">🌙</button>
           <button class="header-action header-menu-btn" onclick="App.toggleNavDrawer()" title="Open navigation menu" aria-label="Open navigation menu" id="btn-top-menu">☰</button>
@@ -380,6 +459,24 @@
           <span class="drawer-item-icon">📲</span>
           <span class="drawer-item-label">WhatsApp Reminders</span>
         </button>
+
+        <div class="drawer-divider"></div>
+        <div class="drawer-section-label">Account &amp; Cloud</div>
+
+        <div class="drawer-user-info" style="padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; background: rgba(255,255,255,0.03); border-radius: var(--radius-md); margin: 0 12px 8px 12px;">
+          <div>
+            <div style="font-weight: 700; color: var(--text-primary); font-size: 0.95rem;" id="drawer-user-name">PG Owner</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);" id="drawer-user-email">owner@angelpg.com</div>
+          </div>
+          <div class="cloud-sync-badge sync-synced" id="drawer-sync-badge">
+            <span class="sync-icon">☁️</span>
+          </div>
+        </div>
+
+        <button type="button" class="drawer-item" style="color: var(--accent-red); margin-top: 4px;" onclick="App.closeNavDrawer(); AuthManager.signOut();">
+          <span class="drawer-item-icon">🚪</span>
+          <span class="drawer-item-label">Sign Out</span>
+        </button>
       </div>
     </div>
   </div>
@@ -403,24 +500,26 @@
   <div id="toast-container" class="toast-container"></div>
 
   <!-- ══ SCRIPTS ════════════════════════════════════════════════ -->
-  <script src="sounds.js?v=4"></script>
-  <script src="libs/qrcode.min.js?v=4"></script>
-  <script src="data.js?v=4"></script>
-  <script src="aadhaar.js?v=4"></script>
-  <script src="whatsapp.js?v=4"></script>
-  <script src="dashboard.js?v=4"></script>
-  <script src="rooms.js?v=4"></script>
-  <script src="tenants.js?v=4"></script>
-  <script src="rent.js?v=4"></script>
-  <script src="history.js?v=4"></script>
-  <script src="custom-date-picker.js?v=4"></script>
-  <script src="expenses.js?v=4"></script>
-  <script src="map.js?v=4"></script>
-  <script src="settings.js?v=4"></script>
-  <script src="business-card.js?v=4"></script>
-  <script src="agreements.js?v=4"></script>
-  <script src="chatbot.js?v=4"></script>
-  <script src="app.js?v=4"></script>
+  <script src="sounds.js?v=5"></script>
+  <script src="libs/qrcode.min.js?v=5"></script>
+  <script src="data.js?v=5"></script>
+  <script src="supabase-client.js?v=5"></script>
+  <script src="cloud-db.js?v=5"></script>
+  <script src="aadhaar.js?v=5"></script>
+  <script src="whatsapp.js?v=5"></script>
+  <script src="dashboard.js?v=5"></script>
+  <script src="rooms.js?v=5"></script>
+  <script src="tenants.js?v=5"></script>
+  <script src="rent.js?v=5"></script>
+  <script src="history.js?v=5"></script>
+  <script src="custom-date-picker.js?v=5"></script>
+  <script src="expenses.js?v=5"></script>
+  <script src="map.js?v=5"></script>
+  <script src="settings.js?v=5"></script>
+  <script src="business-card.js?v=5"></script>
+  <script src="agreements.js?v=5"></script>
+  <script src="chatbot.js?v=5"></script>
+  <script src="app.js?v=5"></script>
 
   <script>
     // ── TAB SWITCHING: show/hide tab content divs ──────────

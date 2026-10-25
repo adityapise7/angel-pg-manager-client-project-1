@@ -41,6 +41,36 @@ function makeHttpsRequest(options, postData) {
   });
 }
 
+// Helper to read and parse .env file
+function loadEnv() {
+  const env = {
+    SUPABASE_URL: 'https://epgipizdldvrevihxyqf.supabase.co',
+    SUPABASE_ANON_KEY: 'sb_publishable_L95tfQXmRu8sw7gw16eLeg_ZMGpriwo',
+    VERCEL_URL: 'https://angel-pg-management.vercel.app'
+  };
+  try {
+    const envPath = path.join(__dirname, '.env');
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf8');
+      const lines = content.split('\n');
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#')) {
+          const eqIdx = trimmed.indexOf('=');
+          if (eqIdx > 0) {
+            const k = trimmed.slice(0, eqIdx).trim();
+            const v = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
+            if (k) env[k] = v;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[Server] Could not parse .env:', e.message);
+  }
+  return env;
+}
+
 const server = http.createServer((req, res) => {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -50,6 +80,17 @@ const server = http.createServer((req, res) => {
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
     res.end();
+    return;
+  }
+
+  // ── DYNAMIC ENV SCRIPT ─────────────────────────────────────
+  if (req.url === '/env.js') {
+    const envData = loadEnv();
+    res.writeHead(200, {
+      'Content-Type': 'application/javascript; charset=utf-8',
+      'Cache-Control': 'no-cache, no-store, must-revalidate'
+    });
+    res.end(`window.__ENV__ = ${JSON.stringify(envData)};`);
     return;
   }
 
