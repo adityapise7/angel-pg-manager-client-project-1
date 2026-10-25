@@ -488,8 +488,7 @@ const Settings = {
     showToast('🔄 Synchronizing PG data with Supabase Cloud...', 'info');
     try {
       if (window.CloudDB) {
-        await window.CloudDB.pushLocalDataToCloud(user.id);
-        await window.CloudDB.pullAllData(user.id);
+        await window.CloudDB.pullAllData(user.id, true);
       }
       showToast('✅ Cloud synchronization complete!', 'success');
       this.render();

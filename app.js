@@ -281,6 +281,9 @@ const App = {
           const user = window.AuthManager.getUser();
           console.log('[App] Restored existing Supabase session for:', user.email);
           window.AuthManager.updateUserUI(user);
+          if (window.CloudDB && typeof window.CloudDB.onUserSignedIn === 'function') {
+            await window.CloudDB.onUserSignedIn(user);
+          }
           this.unlockApp();
           return;
         }
@@ -532,10 +535,14 @@ const App = {
     try {
       if (!window.AuthManager) throw new Error('Authentication manager is not initialized');
       await window.AuthManager.signInWithEmail(email, password);
+      const user = window.AuthManager.getUser();
+      if (user && window.CloudDB && typeof window.CloudDB.onUserSignedIn === 'function') {
+        await window.CloudDB.onUserSignedIn(user);
+      }
       this.showAuthSuccess('Signed in successfully! Loading your PG workspace...');
       setTimeout(() => {
         this.unlockApp();
-      }, 500);
+      }, 300);
     } catch (err) {
       console.error('[App] Sign In error:', err);
       let errorMsg = err.message || 'Invalid email or password';
