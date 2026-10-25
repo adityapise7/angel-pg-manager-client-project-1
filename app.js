@@ -417,16 +417,24 @@ const App = {
   showEmailAuth() {
     const authEl = document.getElementById('auth-screen');
     if (authEl) {
+      authEl.classList.remove('auth-hidden');
       authEl.style.display = 'flex';
       authEl.style.opacity = '1';
+      authEl.style.transform = 'none';
       authEl.style.pointerEvents = 'auto';
-      authEl.classList.remove('auth-hidden');
     }
     const appEl = document.getElementById('app');
     if (appEl) {
       appEl.style.display = 'none';
       appEl.style.pointerEvents = 'none';
       appEl.classList.add('app-hidden');
+    }
+    const chatbot = document.getElementById('chatbot-container');
+    if (chatbot) {
+      chatbot.style.display = 'none';
+    }
+    if (window.Chatbot && window.Chatbot.isOpen) {
+      window.Chatbot.toggle();
     }
     this.switchAuthTab('signin');
   },
@@ -753,6 +761,10 @@ const App = {
       appEl.style.display = 'flex';
       appEl.style.pointerEvents = 'auto';
       appEl.classList.remove('app-hidden');
+    }
+    const chatbot = document.getElementById('chatbot-container');
+    if (chatbot) {
+      chatbot.style.display = 'block';
     }
     this.navigate('dashboard');
     if (typeof Chatbot !== 'undefined') Chatbot.init();

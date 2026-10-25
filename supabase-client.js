@@ -247,14 +247,25 @@
         authScreen.style.transition = 'all 0.35s ease';
         setTimeout(() => {
           authScreen.style.display = 'none';
+          authScreen.classList.add('auth-hidden');
         }, 350);
       }
 
       const appEl = document.getElementById('app');
       if (appEl) {
+        appEl.classList.remove('app-hidden');
         appEl.style.display = 'flex';
         appEl.style.pointerEvents = 'auto';
         appEl.style.opacity = '1';
+      }
+
+      // Show Chatbot container
+      const chatbotEl = document.getElementById('chatbot-container');
+      if (chatbotEl) {
+        chatbotEl.style.display = 'block';
+      }
+      if (typeof Chatbot !== 'undefined' && typeof Chatbot.init === 'function') {
+        Chatbot.init();
       }
 
       if (window.App && typeof window.App.navigate === 'function') {
@@ -267,14 +278,29 @@
       if (appEl) {
         appEl.style.display = 'none';
         appEl.style.pointerEvents = 'none';
+        appEl.classList.add('app-hidden');
+      }
+
+      // Completely hide and remove Chatbot on sign out
+      const chatbotEl = document.getElementById('chatbot-container');
+      if (chatbotEl) {
+        chatbotEl.style.display = 'none';
+      }
+      if (window.Chatbot && window.Chatbot.isOpen) {
+        window.Chatbot.toggle();
       }
 
       const authScreen = document.getElementById('auth-screen');
       if (authScreen) {
+        authScreen.classList.remove('auth-hidden');
         authScreen.style.display = 'flex';
         authScreen.style.opacity = '1';
         authScreen.style.transform = 'none';
         authScreen.style.pointerEvents = 'auto';
+      }
+
+      if (window.App && typeof window.App.switchAuthTab === 'function') {
+        window.App.switchAuthTab('signin');
       }
     },
 

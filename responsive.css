@@ -103,6 +103,16 @@ body {
   z-index: -1 !important;
 }
 
+/* Hide Chatbot button and panel whenever user is on the auth / sign-in screen */
+#app[style*="display: none"] ~ #chatbot-container,
+#app.app-hidden ~ #chatbot-container,
+#auth-screen:not(.auth-hidden):not([style*="display: none"]) ~ #chatbot-container {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+}
+
 /* Desktop Sidebar */
 .desktop-sidebar {
   display: none; /* Shown on desktop/tablet via media queries */
