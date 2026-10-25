@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="Angel's PG Management — Premium PG & Hostel Management for multi-floor, multi-room, multi-bed properties.">
+  <meta name="theme-color" content="#061329">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Angel's PG Management</title>
+  <link rel="icon" type="image/png" href="angel-logo.png">
+  <link rel="apple-touch-icon" href="angel-logo.png">
+  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="responsive.css?v=7">
+  <script>try{var s=document.createElement('script');s.src='env.js';document.head.appendChild(s);}catch(e){}</script>
+  <script src="libs/supabase.min.js"></script>
+  <script>if (typeof window.supabase === 'undefined') { document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>'); }</script>
+  <script src="libs/chart.umd.min.js"></script>
+  <script>if (typeof window.Chart === 'undefined') { document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"><\/script>'); }</script>
+  <!-- Mobile Verification System -->
+  <!-- (No external QR libraries needed — uses WhatsApp OTP) -->
+</head>
+<body>
+
+  <!-- ══ IMMEDIATE LOGO INJECTION SCRIPT (PREVENTS DEFAULT LOGO BLINK) ══ -->
+  <script>
+    (function() {
+      try {
+        var raw = localStorage.getItem('angels_property');
+        if (raw) {
+          var p = JSON.parse(raw);
+          var activeLogo = (p && p.logoUploaded && p.logo) ? p.logo : (p && p.logo ? p.logo : 'angel-logo.png');
+          if (activeLogo) {
+            window._savedPgLogo = activeLogo;
+          }
+        }
+      } catch (e) {}
+    })();
+  </script>
+
+  <!-- ══ SPLASH / CINEMATIC LOADING SCREEN ═════════════════════ -->
+  <div id="splash-screen" role="dialog" aria-modal="true" aria-label="Loading Angel's PG Management">
+    <div class="splash-bg-glow"></div>
+    <div class="splash-container">
+      <!-- Outer Frame Glow & Border Reveal -->
+      <div class="splash-logo-wrapper">
+        <div class="splash-frame-glow"></div>
+        <div class="splash-frame-border"></div>
+        
+        <!-- Main Logo Image with Sheen Overlay -->
+        <div class="splash-logo-card">
+          <img src="angel-logo.png" alt="Angel's PG Management Logo" class="splash-logo-img" id="splash-logo-img">
+          <div class="splash-logo-sheen"></div>
+        </div>
+      </div>
+      <script>
+        if (window._savedPgLogo) {
+          var sImg = document.getElementById('splash-logo-img');
+          if (sImg) sImg.src = window._savedPgLogo;
+        }
+      </script>
+
+      <!-- App Title Branding -->
+      <div class="splash-brand">
+        <h2 class="splash-title">ANGEL'S</h2>
+        <span class="splash-subtitle">PG MANAGEMENT</span>
+      </div>
+
+      <!-- Minimal Progress Indicator -->
+      <div class="splash-progress-wrap">
+        <div class="splash-progress-track">
+          <div class="splash-progress-bar"></div>
+        </div>
+        <p class="splash-status-text">Preparing your workspace...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SUPABASE EMAIL & PASSWORD AUTH SCREEN ═════════════════ -->
+  <div id="auth-screen">
+    <div class="auth-card" id="auth-main-card">
+      <!-- Brand Logo Header -->
+      <div class="auth-brand-header">
+        <div class="auth-logo-card">
+          <div class="auth-logo-glow"></div>
+          <img src="angel-logo.png" alt="Angel's PG Management Logo" class="auth-logo-img" id="auth-logo-img">
+        </div>
+        <h1 class="auth-title">Angel's PG Management</h1>
+        <p class="auth-subtitle">Cloud Property &amp; Tenant Management Suite</p>
+      </div>
+
+      <!-- Segmented Auth Tab Switcher -->
+      <div class="auth-segmented-tabs" role="tablist">
+        <button type="button" class="auth-tab-btn active" id="tab-auth-signin" onclick="App.switchAuthTab('signin')" role="tab" aria-selected="true">
+          Sign In
+        </button>
+        <button type="button" class="auth-tab-btn" id="tab-auth-signup" onclick="App.switchAuthTab('signup')" role="tab" aria-selected="false">
+          Create Account
+        </button>
+      </div>
+
+      <!-- Alert Notification Banners -->
+      <div id="auth-error-banner" class="auth-banner error" style="display: none;">
+        <span class="banner-icon">⚠️</span>
+        <span class="banner-text" id="auth-error-text"></span>
+      </div>
+      <div id="auth-success-banner" class="auth-banner success" style="display: none;">
+        <span class="banner-icon">✅</span>
+        <span class="banner-text" id="auth-success-text"></span>
+      </div>
+
+      <!-- 1. SIGN IN FORM -->
+      <form id="form-auth-signin" class="auth-form-panel" onsubmit="App.handleEmailSignIn(event)">
+        <div class="form-group">
+          <label class="form-label" for="signin-email">Email Address</label>
+          <div class="input-with-icon">
+            <span class="input-icon">✉️</span>
+            <input type="email" id="signin-email" class="form-control" placeholder="owner@angelpg.com" autocomplete="email" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label class="form-label" for="signin-password" style="margin-bottom: 0;">Password</label>
+            <a href="javascript:void(0)" class="auth-link-forgot" onclick="App.showForgotPasswordBox()">Forgot?</a>
+          </div>
+          <div class="input-with-icon">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="signin-password" class="form-control" placeholder="••••••••" autocomplete="current-password" required>
+            <button type="button" class="btn-toggle-eye" onclick="App.togglePasswordVisibility('signin-password', this)" title="Show/Hide Password">👁️</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary auth-submit-btn" id="btn-submit-signin">
+          <span class="btn-text">Sign In to Cloud Account</span>
+          <span class="btn-spinner" style="display: none;">⏳ Signing in...</span>
+        </button>
+      </form>
+
+      <!-- 2. CREATE ACCOUNT (SIGN UP) FORM -->
+      <form id="form-auth-signup" class="auth-form-panel" style="display: none;" onsubmit="App.handleEmailSignUp(event)">
+        <div class="form-group">
+          <label class="form-label" for="signup-name">Full Name / Property Owner</label>
+          <div class="input-with-icon">
+            <span class="input-icon">👤</span>
+            <input type="text" id="signup-name" class="form-control" placeholder="Aditya Pise" autocomplete="name">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="signup-email">Email Address</label>
+          <div class="input-with-icon">
+            <span class="input-icon">✉️</span>
+            <input type="email" id="signup-email" class="form-control" placeholder="owner@angelpg.com" autocomplete="email" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="signup-password">Create Password</label>
+          <div class="input-with-icon">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="signup-password" class="form-control" placeholder="Min. 6 characters" autocomplete="new-password" minlength="6" required>
+            <button type="button" class="btn-toggle-eye" onclick="App.togglePasswordVisibility('signup-password', this)" title="Show/Hide Password">👁️</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="signup-confirm">Confirm Password</label>
+          <div class="input-with-icon">
+            <span class="input-icon">🛡️</span>
+            <input type="password" id="signup-confirm" class="form-control" placeholder="Re-enter password" autocomplete="new-password" minlength="6" required>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary auth-submit-btn" id="btn-submit-signup">
+          <span class="btn-text">Create Free Cloud Account</span>
+          <span class="btn-spinner" style="display: none;">⏳ Creating...</span>
+        </button>
+      </form>
+
+      <!-- 3. FORGOT PASSWORD RECOVERY PANEL -->
+      <div id="box-auth-forgot" class="auth-form-panel" style="display: none;">
+        <div style="text-align: center; margin-bottom: 1.25rem;">
+          <h3 style="font-size: 1.15rem; color: var(--text-primary); margin-bottom: 0.35rem;">Reset Your Password</h3>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4;">
+            Enter your registered email address and we'll send you a secure password recovery link.
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="forgot-email">Registered Email</label>
+          <div class="input-with-icon">
+            <span class="input-icon">✉️</span>
+            <input type="email" id="forgot-email" class="form-control" placeholder="owner@angelpg.com">
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-primary auth-submit-btn" id="btn-send-reset" onclick="App.handleSendResetLink()">
+          <span class="btn-text">Send Reset Link</span>
+          <span class="btn-spinner" style="display: none;">⏳ Sending...</span>
+        </button>
+
+        <div style="text-align: center; margin-top: 1rem;">
+          <a href="javascript:void(0)" class="auth-back-link" onclick="App.hideForgotPasswordBox()">← Back to Sign In</a>
+        </div>
+      </div>
+
+      <!-- Cloud Architecture Security Footer -->
+      <div class="auth-security-footer">
+        <span class="auth-security-icon">🔒</span>
+        <span>Secured by Supabase Cloud · End-to-End Encrypted RLS</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MAIN APP ══════════════════════════════════════════════ -->
+  <div id="app" style="display: none;">
+
+    <!-- ══ DESKTOP & TABLET SIDEBAR (VISIBLE ON SCREENS >= 768px) ══ -->
+    <aside class="desktop-sidebar" aria-label="Desktop Navigation">
+      <div class="sidebar-brand" onclick="App.navigate('dashboard')">
+        <div class="sidebar-brand-logo">
+          <img src="angel-logo.png" alt="Angel's PG Management">
+        </div>
+        <div class="sidebar-brand-text">
+          <div class="sidebar-brand-title">Angel's PG</div>
+          <div class="sidebar-brand-sub">Management Suite</div>
+        </div>
+      </div>
+
+      <div class="sidebar-nav-container">
+        <div class="sidebar-group-title">Main Navigation</div>
+
+        <button type="button" class="sidebar-nav-link active" id="nav-tab-dashboard" data-tab="dashboard" onclick="App.navigate('dashboard')">
+          <span class="sidebar-nav-icon">📊</span>
+          <span>Dashboard</span>
+        </button>
+
+        <button type="button" class="sidebar-nav-link" id="nav-tab-rooms" data-tab="rooms" onclick="App.navigate('rooms')">
+          <span class="sidebar-nav-icon">🏠</span>
+          <span>Rooms &amp; Beds</span>
+        </button>
+
+        <button type="button" class="sidebar-nav-link" id="nav-tab-tenants" data-tab="tenants" onclick="App.navigate('tenants')">
+          <span class="sidebar-nav-icon">👥</span>
+          <span>Tenants</span>
+        </button>
+
+        <button type="button" class="sidebar-nav-link" id="nav-tab-rent" data-tab="rent" onclick="App.navigate('rent')">
+          <span class="sidebar-nav-icon">💰</span>
+          <span>Rent Collection</span>
+        </button>
+
+        <button type="button" class="sidebar-nav-link" id="nav-tab-history" data-tab="history" onclick="App.navigate('history')">
+          <span class="sidebar-nav-icon">📜</span>
+          <span>Payment History</span>
+          <span class="sidebar-nav-badge">New</span>
+        </button>
+
+        <button type="button" class="sidebar-nav-link" id="nav-tab-expenses" data-tab="expenses" onclick="App.navigate('expenses')">
+          <span class="sidebar-nav-icon">💸</span>
+          <span>Expenses &amp; P&amp;L</span>
+        </button>
+
+        <button type="button" class="sidebar-nav-link" id="nav-tab-settings" data-tab="settings" onclick="App.navigate('settings')">
+          <span class="sidebar-nav-icon">⚙️</span>
+          <span>Settings</span>
+        </button>
+
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-group-title">Quick Actions</div>
+
+        <button type="button" class="sidebar-nav-link" id="nav-action-wa" onclick="WhatsApp.openReminderModal()">
+          <span class="sidebar-nav-icon">📲</span>
+          <span>WhatsApp Reminders</span>
+        </button>
+
+        <button type="button" class="sidebar-nav-link" id="nav-action-invoices" onclick="App.openRentView('invoices')">
+          <span class="sidebar-nav-icon">🧾</span>
+          <span>Invoices &amp; Receipts</span>
+        </button>
+
+        <button type="button" class="sidebar-nav-link" id="nav-action-deposits" onclick="App.openRentView('deposits')">
+          <span class="sidebar-nav-icon">🛡️</span>
+          <span>Security Deposits</span>
+        </button>
+
+        <button type="button" class="sidebar-nav-link" id="nav-action-card" onclick="BusinessCard.openShareModal()">
+          <span class="sidebar-nav-icon">🪪</span>
+          <span>Share Business Card</span>
+        </button>
+
+        <button type="button" class="sidebar-nav-link" id="nav-action-agreements" onclick="Agreements.openMainScreen()">
+          <span class="sidebar-nav-icon">📄</span>
+          <span>Rent Agreements</span>
+        </button>
+      </div>
+
+      <div class="sidebar-footer">
+        <!-- Cloud Account Profile Card -->
+        <div class="sidebar-user-card" id="sidebar-user-card">
+          <div class="sidebar-user-avatar">👤</div>
+          <div class="sidebar-user-details">
+            <div class="sidebar-user-name" id="sidebar-user-name">PG Owner</div>
+            <div class="sidebar-user-email" id="sidebar-user-email">owner@angelpg.com</div>
+          </div>
+          <div class="cloud-sync-badge sync-synced" id="sidebar-sync-badge" title="Supabase Cloud Sync Status">
+            <span class="sync-icon">☁️</span>
+            <span class="sync-text">Cloud</span>
+          </div>
+        </div>
+
+        <button type="button" class="sidebar-theme-toggle" id="sidebar-theme-btn" onclick="Settings.toggleDark(document.documentElement.getAttribute('data-theme')!=='dark')">
+          <span id="sidebar-theme-label">🌙 Dark Mode</span>
+          <span id="sidebar-theme-icon">Switch</span>
+        </button>
+
+        <button type="button" class="sidebar-signout-btn" id="sidebar-signout-btn" onclick="AuthManager.signOut()" title="Sign Out of Cloud Account">
+          <span>🚪 Sign Out</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ══ MAIN APPLICATION WORKSPACE ══ -->
+    <div class="app-main-layout">
+      <!-- Top Header -->
+      <header class="app-header">
+        <span class="header-title" id="header-title">🏠 Dashboard</span>
+        <div class="header-actions-group">
+          <div class="cloud-sync-badge sync-synced" id="cloud-sync-status" title="Cloud Sync Status">
+            <span class="sync-icon">☁️</span>
+            <span class="sync-text">Synced</span>
+          </div>
+          <button class="header-action" onclick="WhatsApp.openReminderModal()" title="WhatsApp Reminders" id="btn-wa-header">📲</button>
+          <button class="header-action" onclick="Settings.toggleDark(document.documentElement.getAttribute('data-theme')!=='dark')" title="Toggle Theme" id="btn-theme-header">🌙</button>
+          <button class="header-action header-menu-btn" onclick="App.toggleNavDrawer()" title="Open navigation menu" aria-label="Open navigation menu" id="btn-top-menu">☰</button>
+        </div>
+      </header>
+
+      <!-- Main Tab Contents -->
+      <main>
+        <div id="tab-dashboard" class="tab-content active"></div>
+        <div id="tab-rooms" class="tab-content"></div>
+        <div id="tab-tenants" class="tab-content"></div>
+        <div id="tab-rent" class="tab-content"></div>
+        <div id="tab-history" class="tab-content"></div>
+        <div id="tab-expenses" class="tab-content"></div>
+        <div id="tab-settings" class="tab-content"></div>
+      </main>
+
+      <!-- ══ MOBILE BOTTOM NAVIGATION BAR (VISIBLE ON SCREENS < 768px) ══ -->
+      <nav class="mobile-bottom-nav" aria-label="Mobile Navigation">
+        <button type="button" class="mobile-nav-item active" id="mobile-tab-dashboard" data-tab="dashboard" onclick="App.navigate('dashboard')">
+          <span class="mobile-nav-icon">📊</span>
+          <span class="mobile-nav-label">Home</span>
+        </button>
+        <button type="button" class="mobile-nav-item" id="mobile-tab-rooms" data-tab="rooms" onclick="App.navigate('rooms')">
+          <span class="mobile-nav-icon">🏠</span>
+          <span class="mobile-nav-label">Rooms</span>
+        </button>
+        <button type="button" class="mobile-nav-item" id="mobile-tab-tenants" data-tab="tenants" onclick="App.navigate('tenants')">
+          <span class="mobile-nav-icon">👥</span>
+          <span class="mobile-nav-label">Tenants</span>
+        </button>
+        <button type="button" class="mobile-nav-item" id="mobile-tab-rent" data-tab="rent" onclick="App.navigate('rent')">
+          <span class="mobile-nav-icon">💰</span>
+          <span class="mobile-nav-label">Rent</span>
+        </button>
+        <button type="button" class="mobile-nav-item" id="mobile-tab-more" onclick="App.openNavDrawer()" aria-label="More Options">
+          <span class="mobile-nav-icon">☰</span>
+          <span class="mobile-nav-label">More</span>
+        </button>
+      </nav>
+    </div>
+  </div>
+
+  <!-- ══ TOP RIGHT THREE-DOTS MENU DRAWER / BOARD ═══════════════ -->
+  <div id="app-nav-drawer-overlay" class="app-nav-drawer-overlay" onclick="App.closeNavDrawer()">
+    <div class="app-nav-drawer" onclick="event.stopPropagation()">
+      <div class="drawer-header">
+        <div class="drawer-brand">
+          <div class="drawer-brand-logo">
+            <img src="angel-logo.png" alt="Angel's PG Management">
+          </div>
+          <div>
+            <div class="drawer-brand-title">Angel's PG Management</div>
+            <div class="drawer-brand-sub">Management Suite</div>
+          </div>
+        </div>
+        <button class="drawer-close" onclick="App.closeNavDrawer()">✕</button>
+      </div>
+
+      <div class="drawer-menu-list">
+        <div class="drawer-section-label">Main Tabs</div>
+
+        <button type="button" class="drawer-item" data-drawer-tab="dashboard" onclick="App.navigateFromDrawer('dashboard')">
+          <span class="drawer-item-icon">📊</span>
+          <span class="drawer-item-label">Home</span>
+        </button>
+
+        <button type="button" class="drawer-item" data-drawer-tab="rooms" onclick="App.navigateFromDrawer('rooms')">
+          <span class="drawer-item-icon">🏠</span>
+          <span class="drawer-item-label">Rooms</span>
+        </button>
+
+        <button type="button" class="drawer-item" data-drawer-tab="tenants" onclick="App.navigateFromDrawer('tenants')">
+          <span class="drawer-item-icon">👥</span>
+          <span class="drawer-item-label">Tenants</span>
+        </button>
+
+        <button type="button" class="drawer-item" data-drawer-tab="rent" onclick="App.navigateFromDrawer('rent')">
+          <span class="drawer-item-icon">💰</span>
+          <span class="drawer-item-label">Rent</span>
+        </button>
+
+        <button type="button" class="drawer-item" data-drawer-tab="history" onclick="App.navigateFromDrawer('history')">
+          <span class="drawer-item-icon">📜</span>
+          <span class="drawer-item-label">Payment History</span>
+          <span class="drawer-item-badge">New</span>
+        </button>
+
+        <button type="button" class="drawer-item" data-drawer-tab="expenses" onclick="App.navigateFromDrawer('expenses')">
+          <span class="drawer-item-icon">💸</span>
+          <span class="drawer-item-label">Expenses</span>
+        </button>
+
+        <button type="button" class="drawer-item" data-drawer-tab="settings" onclick="App.navigateFromDrawer('settings')">
+          <span class="drawer-item-icon">⚙️</span>
+          <span class="drawer-item-label">Settings</span>
+        </button>
+
+        <div class="drawer-divider"></div>
+        <div class="drawer-section-label">Quick Actions</div>
+
+        <button type="button" class="drawer-item" onclick="App.openRentView('invoices')">
+          <span class="drawer-item-icon">🧾</span>
+          <span class="drawer-item-label">Invoices &amp; Receipts</span>
+        </button>
+
+        <button type="button" class="drawer-item" onclick="App.openRentView('deposits')">
+          <span class="drawer-item-icon">🛡️</span>
+          <span class="drawer-item-label">Security Deposits</span>
+        </button>
+
+        <button type="button" class="drawer-item" onclick="App.openRentView('analytics')">
+          <span class="drawer-item-icon">📈</span>
+          <span class="drawer-item-label">Revenue Analytics</span>
+        </button>
+
+        <button type="button" class="drawer-item" onclick="App.closeNavDrawer(); Agreements.openMainScreen();">
+          <span class="drawer-item-icon">📄</span>
+          <span class="drawer-item-label">Rent Agreements</span>
+        </button>
+
+        <button type="button" class="drawer-item" onclick="App.closeNavDrawer(); BusinessCard.openShareModal();">
+          <span class="drawer-item-icon">🪪</span>
+          <span class="drawer-item-label">Share Business Card</span>
+        </button>
+
+        <button type="button" class="drawer-item" onclick="App.closeNavDrawer(); WhatsApp.openReminderModal();">
+          <span class="drawer-item-icon">📲</span>
+          <span class="drawer-item-label">WhatsApp Reminders</span>
+        </button>
+
+        <div class="drawer-divider"></div>
+        <div class="drawer-section-label">Account &amp; Cloud</div>
+
+        <div class="drawer-user-info" style="padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; background: rgba(255,255,255,0.03); border-radius: var(--radius-md); margin: 0 12px 8px 12px;">
+          <div>
+            <div style="font-weight: 700; color: var(--text-primary); font-size: 0.95rem;" id="drawer-user-name">PG Owner</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);" id="drawer-user-email">owner@angelpg.com</div>
+          </div>
+          <div class="cloud-sync-badge sync-synced" id="drawer-sync-badge">
+            <span class="sync-icon">☁️</span>
+          </div>
+        </div>
+
+        <button type="button" class="drawer-item" style="color: var(--accent-red); margin-top: 4px;" onclick="App.closeNavDrawer(); AuthManager.signOut();">
+          <span class="drawer-item-icon">🚪</span>
+          <span class="drawer-item-label">Sign Out</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ CHATBOT CONTAINER ═════════════════════════════════════ -->
+  <div id="chatbot-container"></div>
+
+  <!-- ══ MODAL SHEET ═══════════════════════════════════════════ -->
+  <div id="modal-overlay" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <span class="modal-title" id="modal-title"></span>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- ══ TOAST CONTAINER ═══════════════════════════════════════ -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- ══ SCRIPTS ════════════════════════════════════════════════ -->
+  <script src="sounds.js?v=5"></script>
+  <script src="libs/qrcode.min.js?v=5"></script>
+  <script src="data.js?v=5"></script>
+  <script src="supabase-client.js?v=7"></script>
+  <script src="cloud-db.js?v=7"></script>
+  <script src="aadhaar.js?v=5"></script>
+  <script src="whatsapp.js?v=5"></script>
+  <script src="dashboard.js?v=5"></script>
+  <script src="rooms.js?v=5"></script>
+  <script src="tenants.js?v=5"></script>
+  <script src="rent.js?v=5"></script>
+  <script src="history.js?v=5"></script>
+  <script src="custom-date-picker.js?v=5"></script>
+  <script src="expenses.js?v=5"></script>
+  <script src="map.js?v=5"></script>
+  <script src="settings.js?v=7"></script>
+  <script src="business-card.js?v=5"></script>
+  <script src="agreements.js?v=5"></script>
+  <script src="chatbot.js?v=5"></script>
+  <script src="app.js?v=7"></script>
+
+  <script>
+    // ── TAB SWITCHING: show/hide tab content divs ──────────
+    const _origNavigate = App.navigate.bind(App);
+    App.navigate = function(tab) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      const el = document.getElementById('tab-' + tab);
+      if (el) el.classList.add('active');
+      _origNavigate(tab);
+    };
+
+    // ── KEYBOARD SUPPORT ─────────────────────────────────
+    document.addEventListener('keydown', e => {
+      const authScreen = document.getElementById('auth-screen');
+      if (authScreen && authScreen.style.display !== 'none') {
+        if (e.key >= '0' && e.key <= '9') App.pressKey(e.key);
+        if (e.key === 'Backspace') App.pressKey('⌫');
+      }
+      if (e.key === 'Escape') {
+        closeModal();
+        if (window.App && typeof window.App.closeNavDrawer === 'function') {
+          window.App.closeNavDrawer();
+        }
+      }
+    });
+
+
+
+    // ── THEME SYNC ────────────────────────────────────────
+    const _origToggleDark = Settings.toggleDark.bind(Settings);
+    Settings.toggleDark = function(val) {
+      _origToggleDark(val);
+      const btn = document.getElementById('btn-theme-header');
+      if (btn) btn.textContent = val ? '☀️' : '🌙';
+      const sideLabel = document.getElementById('sidebar-theme-label');
+      if (sideLabel) sideLabel.textContent = val ? '☀️ Light Mode' : '🌙 Dark Mode';
+      if (App.currentTab === 'settings') Settings.render();
+    };
+
+    // Set correct theme icon on load
+    document.addEventListener('DOMContentLoaded', () => {
+      const isDark = DB.getDarkMode();
+      const btn = document.getElementById('btn-theme-header');
+      if (btn) btn.textContent = isDark ? '☀️' : '🌙';
+      const sideLabel = document.getElementById('sidebar-theme-label');
+      if (sideLabel) sideLabel.textContent = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+
+      // ── GLOBAL HAPTIC CLICK HANDLER ──────────────────────
+      document.addEventListener('click', (e) => {
+        try {
+          const target = e.target.closest('button, .card, .stat-card, .room-card, .tenant-card, .bed-chip, .floor-card, .expense-row, .payment-row, .setting-item, .toggle-switch, select, .header-action, .chatbot-chip');
+          if (!target) return;
+
+          if (target.classList.contains('pin-btn')) return;
+          if (target.classList.contains('chatbot-fab')) return;
+          if (target.classList.contains('chatbot-close-btn')) return;
+          if (target.classList.contains('chatbot-q-btn')) return;
+          if (target.classList.contains('chatbot-back-btn')) return;
+          if (target.classList.contains('nav-item')) return;
+          if (target.classList.contains('modal-close')) return;
+
+          if (target.classList.contains('toggle-switch') || target.closest('.toggle-switch')) {
+            if (typeof SoundFX !== 'undefined' && SoundFX.toggle) SoundFX.toggle();
+            return;
+          }
+
+          if (target.classList.contains('card') || target.classList.contains('stat-card') ||
+              target.classList.contains('room-card') || target.classList.contains('tenant-card') ||
+              target.classList.contains('floor-card') || target.classList.contains('bed-chip') ||
+              target.classList.contains('expense-row') || target.classList.contains('payment-row')) {
+            if (typeof SoundFX !== 'undefined' && SoundFX.cardTap) SoundFX.cardTap();
+            return;
+          }
+
+          if (target.classList.contains('header-action')) {
+            if (typeof SoundFX !== 'undefined' && SoundFX.buttonClick) SoundFX.buttonClick();
+            return;
+          }
+
+          if (target.classList.contains('setting-item')) {
+            if (typeof SoundFX !== 'undefined' && SoundFX.cardTap) SoundFX.cardTap();
+            return;
+          }
+
+          if (target.tagName === 'SELECT') {
+            if (typeof SoundFX !== 'undefined' && SoundFX.dropdown) SoundFX.dropdown();
+            return;
+          }
+
+          if (target.tagName === 'BUTTON') {
+            if (typeof SoundFX !== 'undefined' && SoundFX.buttonClick) SoundFX.buttonClick();
+            return;
+          }
+        } catch (err) {}
+      });
+    });
+  </script>
+</body>
+</html>

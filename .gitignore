@@ -1,0 +1,8 @@
+# Android Build Artifacts
+android/build/
+*.idsig
+
+# Environment & Editor
+.env
+.DS_Store
+Thumbs.db
