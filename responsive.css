@@ -1,0 +1,970 @@
+/* ============================================================
+   ANGEL'S PG MANAGEMENT — ADAPTIVE RESPONSIVE DESIGN SYSTEM
+   Device-Specific Experiences: Desktop / Tablet / Mobile
+   ============================================================ */
+
+/* ── 1. GLOBAL LAYOUT VARIABLES & BREAKPOINTS ──────────────── */
+:root {
+  --desktop-sidebar-width: 270px;
+  --tablet-sidebar-width: 220px;
+  --header-height-desktop: 68px;
+  --header-height-mobile: 58px;
+  --bottom-nav-height: 64px;
+  --content-max-width: 1440px;
+  --touch-target-min: 44px;
+}
+
+/* ── 2. GLOBAL VIEWPORT & BODY ADAPTATIONS ─────────────────── */
+html {
+  height: 100%;
+  width: 100%;
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
+body {
+  max-width: 100% !important;
+  width: 100% !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden !important;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── 3. AUTH / PIN SCREEN (RESPONSIVE) ──────────────────────── */
+#auth-screen {
+  max-width: 100%;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--bg-primary);
+  z-index: 2000;
+  box-sizing: border-box;
+}
+
+#auth-screen.auth-hidden,
+#auth-screen[style*="display: none"] {
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+  z-index: -1 !important;
+}
+
+/* Auth card wrapper for desktop/tablet */
+.auth-inner-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  padding: 36px 28px;
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-sizing: border-box;
+  animation: authCardIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes authCardIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── 4. MAIN APP LAYOUT SHELL ──────────────────────────────── */
+#app {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  display: flex !important;
+  flex-direction: row !important;
+  background: var(--bg-primary) !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+}
+
+/* Desktop Sidebar */
+.desktop-sidebar {
+  display: none; /* Shown on desktop/tablet via media queries */
+  width: var(--desktop-sidebar-width);
+  min-width: var(--desktop-sidebar-width);
+  height: 100vh;
+  height: 100dvh;
+  position: sticky;
+  top: 0;
+  left: 0;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  flex-direction: column;
+  z-index: 100;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  box-shadow: 2px 0 16px rgba(0, 0, 0, 0.03);
+}
+
+/* Sidebar Brand Header */
+.sidebar-brand {
+  padding: 20px 20px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.sidebar-brand:hover {
+  background: var(--bg-card-hover);
+}
+
+.sidebar-brand-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0EA5E9, #8B5CF6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);
+  flex-shrink: 0;
+}
+
+.sidebar-brand-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sidebar-brand-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.sidebar-brand-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.2px;
+}
+
+.sidebar-brand-sub {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-blue);
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sidebar-brand-sub::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  box-shadow: 0 0 6px var(--accent-green);
+}
+
+/* Sidebar Navigation Items */
+.sidebar-nav-container {
+  flex: 1;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-group-title {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+  padding: 10px 12px 4px;
+}
+
+.sidebar-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.sidebar-nav-link:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+  transform: translateX(3px);
+}
+
+.sidebar-nav-link.active {
+  background: var(--accent-blue-light);
+  color: var(--accent-blue-dark);
+  font-weight: 700;
+}
+
+[data-theme="dark"] .sidebar-nav-link.active {
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--accent-blue);
+}
+
+.sidebar-nav-link.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 15%;
+  bottom: 15%;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: var(--accent-blue);
+}
+
+.sidebar-nav-icon {
+  font-size: 18px;
+  width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sidebar-nav-badge {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  background: var(--accent-blue-light);
+  color: var(--accent-blue-dark);
+}
+
+.sidebar-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 12px 8px;
+}
+
+/* Sidebar Footer */
+.sidebar-footer {
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg-card);
+}
+
+.sidebar-theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.sidebar-theme-toggle:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+/* ── 5. MAIN CONTENT WRAPPER ───────────────────────────────── */
+.app-main-layout {
+  flex: 1;
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* App Header (Adaptive) */
+.app-header {
+  position: sticky !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  height: var(--header-height-mobile) !important;
+  background: var(--bg-nav) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-bottom: 1px solid var(--border) !important;
+  z-index: 120 !important;
+  padding: 0 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  box-sizing: border-box !important;
+}
+
+.header-title {
+  font-size: 16.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.3px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+/* Header Action Buttons */
+.header-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-action {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: var(--radius-md) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 18px !important;
+  transition: all 0.2s ease !important;
+}
+
+.header-action:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Main Tab Area */
+main {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.tab-content {
+  flex: 1;
+  width: 100%;
+  display: none;
+  box-sizing: border-box;
+}
+
+.tab-content.active {
+  display: flex !important;
+  flex-direction: column;
+}
+
+/* Scroll Area (Adaptive) */
+.scroll-area {
+  flex: 1;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 16px 16px 90px !important; /* Mobile bottom padding for nav bar */
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+  margin: 0 auto !important;
+}
+
+/* ── 6. MOBILE BOTTOM NAVIGATION ───────────────────────────── */
+.mobile-bottom-nav {
+  display: flex;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--bg-nav);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.08);
+  z-index: 150;
+  justify-content: space-around;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.mobile-nav-item {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px 0;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  min-height: var(--touch-target-min);
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-nav-item:active {
+  transform: scale(0.92);
+}
+
+.mobile-nav-icon {
+  font-size: 20px;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.mobile-nav-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
+.mobile-nav-item.active {
+  color: var(--accent-blue);
+}
+
+.mobile-nav-item.active .mobile-nav-icon {
+  transform: translateY(-2px);
+}
+
+.mobile-nav-item.active .mobile-nav-label {
+  font-weight: 800;
+}
+
+.mobile-nav-item.active::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  width: 16px;
+  height: 3px;
+  border-radius: var(--radius-full);
+  background: var(--accent-blue);
+  box-shadow: 0 0 8px var(--accent-blue);
+}
+
+/* ── 7. TABLET EXPERIENCE (768px – 1024px) ─────────────────── */
+@media (min-width: 768px) {
+  /* Show Desktop Sidebar in Tablet Mode */
+  .desktop-sidebar {
+    display: flex !important;
+    width: var(--tablet-sidebar-width);
+    min-width: var(--tablet-sidebar-width);
+  }
+
+  /* Hide Mobile Bottom Nav */
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+
+  /* Header adjustments */
+  .app-header {
+    height: var(--header-height-desktop) !important;
+    padding: 0 24px !important;
+  }
+
+  .header-menu-btn {
+    display: none !important; /* Drawer menu redundant with sidebar */
+  }
+
+  /* Scroll Area padding */
+  .scroll-area {
+    padding: 24px 24px 40px !important;
+    max-width: var(--content-max-width) !important;
+  }
+
+  /* Summary Grid on Tablet: 4 columns */
+  .summary-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 14px !important;
+  }
+
+  /* Rooms Grid on Tablet: 2 columns */
+  #rooms-list {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px !important;
+  }
+
+  /* Tenants List on Tablet: 2 columns */
+  #tenant-list,
+  .rent-cards-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px !important;
+  }
+
+  /* Rent Revenue Stats on Tablet: 4 columns */
+  .revenue-stats {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  /* Settings Grid on Tablet: 2 columns */
+  #tab-settings .scroll-area {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 20px !important;
+    align-items: start !important;
+  }
+
+  /* Expenses on Tablet */
+  .expenses-analytics-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* Modal Centered on Tablet */
+  .modal-overlay {
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 24px !important;
+  }
+
+  .modal-sheet {
+    border-radius: var(--radius-2xl) !important;
+    max-width: 600px !important;
+    max-height: 85vh !important;
+    animation: modalPopIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  .modal-handle {
+    display: none !important;
+  }
+
+  /* Tablet Floating Action Buttons positioned neatly near Chatbot */
+  .chatbot-fab {
+    bottom: 24px !important;
+    right: 24px !important;
+    width: 56px !important;
+    height: 56px !important;
+    font-size: 26px !important;
+  }
+
+  .app-fab-action,
+  .room-fab-left,
+  .fab-room-left,
+  .fab-left {
+    position: fixed !important;
+    bottom: 25px !important;
+    right: 92px !important;
+    left: auto !important;
+    height: 54px !important;
+    border-radius: var(--radius-full) !important;
+    padding: 0 20px 0 16px !important;
+    gap: 8px !important;
+    font-size: 14px !important;
+    z-index: 185 !important;
+  }
+
+  .app-fab-label {
+    display: inline-block !important;
+  }
+}
+
+/* ── 8. DESKTOP / PC EXPERIENCE (≥ 1025px) ─────────────────── */
+@media (min-width: 1025px) {
+  /* Full Desktop Sidebar */
+  .desktop-sidebar {
+    display: flex !important;
+    width: var(--desktop-sidebar-width) !important;
+    min-width: var(--desktop-sidebar-width) !important;
+  }
+
+  /* Header Desktop */
+  .app-header {
+    height: var(--header-height-desktop) !important;
+    padding: 0 36px !important;
+  }
+
+  .header-title {
+    font-size: 19px !important;
+  }
+
+  /* Scroll Area Desktop */
+  .scroll-area {
+    padding: 32px 36px 60px !important;
+    max-width: var(--content-max-width) !important;
+  }
+
+  /* Property Hero on Desktop: Brand and logo are prominently shown in the sidebar header */
+  .property-hero {
+    display: none !important;
+  }
+
+  /* 4-column Stat Metric Cards with hover lift */
+  .summary-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 18px !important;
+    margin-bottom: 24px !important;
+  }
+
+  .stat-card {
+    padding: 20px !important;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    cursor: default;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: var(--shadow-lg) !important;
+  }
+
+  .stat-value {
+    font-size: 28px !important;
+  }
+
+  /* 2-Column Split Dashboard on Desktop */
+  .dash-desktop-grid {
+    display: grid !important;
+    grid-template-columns: 1.15fr 0.85fr !important;
+    gap: 24px !important;
+    align-items: start !important;
+  }
+
+  .dash-col-main {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .dash-col-side {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* Rooms Grid on Desktop: 2 to 3 responsive columns */
+  #rooms-list {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)) !important;
+    gap: 20px !important;
+  }
+
+  .room-card {
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    margin-bottom: 0 !important;
+  }
+
+  .room-card:hover {
+    transform: translateY(-3px) !important;
+    box-shadow: var(--shadow-md) !important;
+    border-color: var(--accent-blue) !important;
+  }
+
+  /* Floating Action Buttons (Add Room / Add Expense) on Desktop positioned neatly beside Chatbot */
+  .app-fab-action,
+  .room-fab-left,
+  .fab-room-left,
+  .fab-left {
+    position: fixed !important;
+    bottom: 34px !important;
+    right: 104px !important;
+    left: auto !important;
+    height: 56px !important;
+    border-radius: var(--radius-full) !important;
+    padding: 0 22px 0 18px !important;
+    gap: 9px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    z-index: 185 !important;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  .app-fab-action:hover,
+  .room-fab-left:hover,
+  .fab-left:hover {
+    transform: translateY(-3px) scale(1.02) !important;
+  }
+
+  .app-fab-label {
+    display: inline-block !important;
+  }
+
+  /* Tenants List & Rent Overview on Desktop: Multi-column Card Grid */
+  #tenant-list,
+  .rent-cards-grid,
+  .tenants-container {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)) !important;
+    gap: 18px !important;
+  }
+
+  .tenant-card {
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    cursor: pointer;
+  }
+
+  .tenant-card:hover {
+    transform: translateY(-3px) !important;
+    box-shadow: var(--shadow-md) !important;
+    border-color: var(--accent-blue) !important;
+  }
+
+  /* Rent Overview Desktop: Multi-column */
+  .revenue-stats {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 16px !important;
+  }
+
+  .rev-stat {
+    padding: 18px 20px !important;
+    border-radius: var(--radius-lg) !important;
+  }
+
+  .rev-stat-value {
+    font-size: 26px !important;
+  }
+
+  /* Settings 2-Column Desktop Grid */
+  #tab-settings .scroll-area {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 24px !important;
+    align-items: start !important;
+  }
+
+  /* Modal on Desktop */
+  .modal-overlay {
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 32px !important;
+  }
+
+  .modal-sheet {
+    border-radius: 20px !important;
+    max-width: 680px !important;
+    width: 100% !important;
+    max-height: 85vh !important;
+    box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.4) !important;
+    animation: modalPopIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  @keyframes modalPopIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .modal-handle {
+    display: none !important;
+  }
+
+  /* Chatbot FAB on Desktop */
+  .chatbot-fab {
+    bottom: 32px !important;
+    right: 32px !important;
+    width: 60px !important;
+    height: 60px !important;
+    font-size: 28px !important;
+    transition: all 0.25s ease !important;
+  }
+
+  .chatbot-fab:hover {
+    transform: scale(1.08) !important;
+    box-shadow: 0 10px 30px rgba(99, 102, 241, 0.5) !important;
+  }
+
+  .chatbot-window {
+    bottom: 104px !important;
+    right: 32px !important;
+    width: 420px !important;
+    max-height: 620px !important;
+    border-radius: 20px !important;
+  }
+}
+
+/* ── 9. ULTRA-WIDE DESKTOP SCREENS (≥ 1600px) ──────────────── */
+@media (min-width: 1600px) {
+  :root {
+    --desktop-sidebar-width: 290px;
+    --content-max-width: 1560px;
+  }
+
+  .summary-grid {
+    gap: 22px !important;
+  }
+
+  #rooms-list {
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)) !important;
+  }
+}
+
+/* ── 10. MOBILE-SPECIFIC TOUCH ENHANCEMENTS (< 768px) ──────── */
+@media (max-width: 767px) {
+  /* Ensure primary buttons meet 44-48px touch target */
+  .btn,
+  .pin-btn,
+  .month-nav-btn,
+  .sub-tab,
+  .floor-tab,
+  .drawer-item {
+    min-height: var(--touch-target-min);
+  }
+
+  /* Mobile Modals as Bottom Sheet */
+  .modal-overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
+  .modal-sheet {
+    border-radius: 24px 24px 0 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: 88vh !important;
+    animation: sheetSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  @keyframes sheetSlideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  /* Floating Action Buttons on mobile neatly grouped near Chatbot above bottom navigation */
+  .chatbot-fab {
+    bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 14px) !important;
+    right: 16px !important;
+    width: 50px !important;
+    height: 50px !important;
+    font-size: 24px !important;
+  }
+
+  .app-fab-action,
+  .room-fab-left,
+  .fab-room-left,
+  .fab-left {
+    position: fixed !important;
+    bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 14px) !important;
+    right: 76px !important;
+    left: auto !important;
+    width: 50px !important;
+    height: 50px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    gap: 0 !important;
+    z-index: 185 !important;
+    justify-content: center !important;
+  }
+
+  .app-fab-label {
+    display: none !important;
+  }
+
+  .app-fab-icon {
+    font-size: 20px !important;
+  }
+
+  .app-fab-icon svg {
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  .chatbot-window {
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: 85vh !important;
+    max-height: 85vh !important;
+    border-radius: 20px 20px 0 0 !important;
+  }
+
+  /* Floor tabs horizontal swipe */
+  .floor-tabs {
+    display: flex !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    padding-bottom: 4px !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Mobile Floor & Room Header adjustments */
+  .rooms-header-bar {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  .rooms-header-actions {
+    width: 100% !important;
+    display: flex !important;
+    overflow-x: auto !important;
+    padding-bottom: 4px !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .rooms-header-actions .btn {
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  .room-card-header {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+}
+
+/* ── 11. ACCESSIBILITY & PREFERS-REDUCED-MOTION ────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Visible focus rings for keyboard users */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent-blue) !important;
+  outline-offset: 2px !important;
+}

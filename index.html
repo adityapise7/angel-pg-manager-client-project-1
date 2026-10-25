@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="Angel's PG Management — Premium PG & Hostel Management for multi-floor, multi-room, multi-bed properties.">
+  <meta name="theme-color" content="#061329">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Angel's PG Management</title>
+  <link rel="icon" type="image/png" href="angel-logo.png">
+  <link rel="apple-touch-icon" href="angel-logo.png">
+  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="responsive.css?v=4">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- Mobile Verification System -->
+  <!-- (No external QR libraries needed — uses WhatsApp OTP) -->
+</head>
+<body>
+
+  <!-- ══ IMMEDIATE LOGO INJECTION SCRIPT (PREVENTS DEFAULT LOGO BLINK) ══ -->
+  <script>
+    (function() {
+      try {
+        var raw = localStorage.getItem('angels_property');
+        if (raw) {
+          var p = JSON.parse(raw);
+          var activeLogo = (p && p.logoUploaded && p.logo) ? p.logo : (p && p.logo ? p.logo : 'angel-logo.png');
+          if (activeLogo) {
+            window._savedPgLogo = activeLogo;
+          }
+        }
+      } catch (e) {}
+    })();
+  </script>
+
+  <!-- ══ SPLASH / CINEMATIC LOADING SCREEN ═════════════════════ -->
+  <div id="splash-screen" role="dialog" aria-modal="true" aria-label="Loading Angel's PG Management">
+    <div class="splash-bg-glow"></div>
+    <div class="splash-container">
+      <!-- Outer Frame Glow & Border Reveal -->
+      <div class="splash-logo-wrapper">
+        <div class="splash-frame-glow"></div>
+        <div class="splash-frame-border"></div>
+        
+        <!-- Main Logo Image with Sheen Overlay -->
+        <div class="splash-logo-card">
+          <img src="angel-logo.png" alt="Angel's PG Management Logo" class="splash-logo-img" id="splash-logo-img">
+          <div class="splash-logo-sheen"></div>
+        </div>
+      </div>
+      <script>
+        if (window._savedPgLogo) {
+          var sImg = document.getElementById('splash-logo-img');
+          if (sImg) sImg.src = window._savedPgLogo;
+        }
+      </script>
+
+      <!-- App Title Branding -->
+      <div class="splash-brand">
+        <h2 class="splash-title">ANGEL'S</h2>
+        <span class="splash-subtitle">PG MANAGEMENT</span>
+      </div>
+
+      <!-- Minimal Progress Indicator -->
+      <div class="splash-progress-wrap">
+        <div class="splash-progress-track">
+          <div class="splash-progress-bar"></div>
+        </div>
+        <p class="splash-status-text">Preparing your workspace...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ AUTH SCREEN ══════════════════════════════════════════ -->
+  <script>
+    function pressPinKey(k) {
+      if (window.App && typeof window.App.pressKey === 'function') {
+        window.App.pressKey(k);
+        return;
+      }
+      window._fallbackPinBuffer = window._fallbackPinBuffer || '';
+      if (k === '⌫') {
+        window._fallbackPinBuffer = window._fallbackPinBuffer.slice(0, -1);
+      } else if (window._fallbackPinBuffer.length < 4) {
+        window._fallbackPinBuffer += k;
+      }
+      for (let i = 0; i < 4; i++) {
+        const dot = document.getElementById('dot-' + i);
+        if (dot) dot.className = 'pin-dot' + (i < window._fallbackPinBuffer.length ? ' filled' : '');
+      }
+      if (window._fallbackPinBuffer.length === 4) {
+        setTimeout(async () => {
+          if (window.App && typeof window.App.handlePinComplete === 'function') {
+            window.App.pinBuffer = window._fallbackPinBuffer;
+            window._fallbackPinBuffer = '';
+            await window.App.handlePinComplete();
+          } else {
+            const authEl = document.getElementById('auth-screen');
+            const appEl = document.getElementById('app');
+            if (authEl) {
+              authEl.style.pointerEvents = 'none';
+              authEl.style.display = 'none';
+              if (authEl.parentNode) authEl.parentNode.removeChild(authEl);
+            }
+            if (appEl) {
+              appEl.style.display = 'flex';
+              appEl.style.pointerEvents = 'auto';
+            }
+          }
+        }, 120);
+      }
+    }
+  </script>
+  <div id="auth-screen">
+    <div class="auth-inner-card">
+
+    <div class="rudra-startup-wrap">
+      <div class="rudra-auth-logo-card" title="Angel's PG Management">
+        <div class="rudra-auth-logo-glow"></div>
+        <img src="angel-logo.png" alt="Angel's PG Management Logo" class="rudra-auth-logo-img">
+      </div>
+    </div>
+    <h1 class="auth-title" id="auth-title">Angel's PG Management</h1>
+    <p class="auth-subtitle" id="auth-subtitle">Enter your PIN to continue</p>
+
+    <!-- PIN Dots -->
+    <div class="pin-display">
+      <div class="pin-dot" id="dot-0"></div>
+      <div class="pin-dot" id="dot-1"></div>
+      <div class="pin-dot" id="dot-2"></div>
+      <div class="pin-dot" id="dot-3"></div>
+    </div>
+
+    <!-- PIN Pad -->
+    <div class="pin-pad">
+      <button type="button" class="pin-btn" onclick="pressPinKey('1')">1</button>
+      <button type="button" class="pin-btn" onclick="pressPinKey('2')">2</button>
+      <button type="button" class="pin-btn" onclick="pressPinKey('3')">3</button>
+      <button type="button" class="pin-btn" onclick="pressPinKey('4')">4</button>
+      <button type="button" class="pin-btn" onclick="pressPinKey('5')">5</button>
+      <button type="button" class="pin-btn" onclick="pressPinKey('6')">6</button>
+      <button type="button" class="pin-btn" onclick="pressPinKey('7')">7</button>
+      <button type="button" class="pin-btn" onclick="pressPinKey('8')">8</button>
+      <button type="button" class="pin-btn" onclick="pressPinKey('9')">9</button>
+      <div></div>
+      <button type="button" class="pin-btn" onclick="pressPinKey('0')">0</button>
+      <button type="button" class="pin-btn delete" onclick="pressPinKey('⌫')">⌫</button>
+    </div>
+
+    
+      <div class="auth-error" id="auth-error"></div>
+    </div>
+  </div>
+
+  <!-- ══ MAIN APP ══════════════════════════════════════════════ -->
+  <div id="app">
+
+    <!-- ══ DESKTOP & TABLET SIDEBAR (VISIBLE ON SCREENS >= 768px) ══ -->
+    <aside class="desktop-sidebar" aria-label="Desktop Navigation">
+      <div class="sidebar-brand" onclick="App.navigate('dashboard')">
+        <div class="sidebar-brand-logo">
+          <img src="angel-logo.png" alt="Angel's PG Management">
+        </div>
+        <div class="sidebar-brand-text">
+          <div class="sidebar-brand-title">Angel's PG</div>
+          <div class="sidebar-brand-sub">Management Suite</div>
+        </div>
+      </div>
+
+      <div class="sidebar-nav-container">
+        <div class="sidebar-group-title">Main Navigation</div>
+
+        <button type="button" class="sidebar-nav-link active" id="nav-tab-dashboard" data-tab="dashboard" onclick="App.navigate('dashboard')">
+          <span class="sidebar-nav-icon">📊</span>
+          <span>Dashboard</span>
+        </button>
+
+        <button type="button" class="sidebar-nav-link" id="nav-tab-rooms" data-tab="rooms" onclick="App.navigate('rooms')">
+          <span class="sidebar-nav-icon">🏠</span>
+          <span>Rooms &amp; Beds</span>
+        </button>
+
+        <button type="button" class="sidebar-nav-link" id="nav-tab-tenants" data-tab="tenants" onclick="App.navigate('tenants')">
+          <span class="sidebar-nav-icon">👥</span>
+          <span>Tenants</span>
+        </button>
+
+        <button type="button" class="sidebar-nav-link" id="nav-tab-rent" data-tab="rent" onclick="App.navigate('rent')">
+          <span class="sidebar-nav-icon">💰</span>
+          <span>Rent Collection</span>
+        </button>
+
+        <button type="button" class="sidebar-nav-link" id="nav-tab-history" data-tab="history" onclick="App.navigate('history')">
+          <span class="sidebar-nav-icon">📜</span>
+          <span>Payment History</span>
+          <span class="sidebar-nav-badge">New</span>
+        </button>
+
+        <button type="button" class="sidebar-nav-link" id="nav-tab-expenses" data-tab="expenses" onclick="App.navigate('expenses')">
+          <span class="sidebar-nav-icon">💸</span>
+          <span>Expenses &amp; P&amp;L</span>
+        </button>
+
+        <button type="button" class="sidebar-nav-link" id="nav-tab-settings" data-tab="settings" onclick="App.navigate('settings')">
+          <span class="sidebar-nav-icon">⚙️</span>
+          <span>Settings</span>
+        </button>
+
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-group-title">Quick Actions</div>
+
+        <button type="button" class="sidebar-nav-link" id="nav-action-wa" onclick="WhatsApp.openReminderModal()">
+          <span class="sidebar-nav-icon">📲</span>
+          <span>WhatsApp Reminders</span>
+        </button>
+
+        <button type="button" class="sidebar-nav-link" id="nav-action-invoices" onclick="App.openRentView('invoices')">
+          <span class="sidebar-nav-icon">🧾</span>
+          <span>Invoices &amp; Receipts</span>
+        </button>
+
+        <button type="button" class="sidebar-nav-link" id="nav-action-deposits" onclick="App.openRentView('deposits')">
+          <span class="sidebar-nav-icon">🛡️</span>
+          <span>Security Deposits</span>
+        </button>
+
+        <button type="button" class="sidebar-nav-link" id="nav-action-card" onclick="BusinessCard.openShareModal()">
+          <span class="sidebar-nav-icon">🪪</span>
+          <span>Share Business Card</span>
+        </button>
+
+        <button type="button" class="sidebar-nav-link" id="nav-action-agreements" onclick="Agreements.openMainScreen()">
+          <span class="sidebar-nav-icon">📄</span>
+          <span>Rent Agreements</span>
+        </button>
+      </div>
+
+      <div class="sidebar-footer">
+        <button type="button" class="sidebar-theme-toggle" id="sidebar-theme-btn" onclick="Settings.toggleDark(document.documentElement.getAttribute('data-theme')!=='dark')">
+          <span id="sidebar-theme-label">🌙 Dark Mode</span>
+          <span id="sidebar-theme-icon">Switch</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ══ MAIN APPLICATION WORKSPACE ══ -->
+    <div class="app-main-layout">
+      <!-- Top Header -->
+      <header class="app-header">
+        <span class="header-title" id="header-title">🏠 Dashboard</span>
+        <div class="header-actions-group">
+          <button class="header-action" onclick="WhatsApp.openReminderModal()" title="WhatsApp Reminders" id="btn-wa-header">📲</button>
+          <button class="header-action" onclick="Settings.toggleDark(document.documentElement.getAttribute('data-theme')!=='dark')" title="Toggle Theme" id="btn-theme-header">🌙</button>
+          <button class="header-action header-menu-btn" onclick="App.toggleNavDrawer()" title="Open navigation menu" aria-label="Open navigation menu" id="btn-top-menu">☰</button>
+        </div>
+      </header>
+
+      <!-- Main Tab Contents -->
+      <main>
+        <div id="tab-dashboard" class="tab-content active"></div>
+        <div id="tab-rooms" class="tab-content"></div>
+        <div id="tab-tenants" class="tab-content"></div>
+        <div id="tab-rent" class="tab-content"></div>
+        <div id="tab-history" class="tab-content"></div>
+        <div id="tab-expenses" class="tab-content"></div>
+        <div id="tab-settings" class="tab-content"></div>
+      </main>
+
+      <!-- ══ MOBILE BOTTOM NAVIGATION BAR (VISIBLE ON SCREENS < 768px) ══ -->
+      <nav class="mobile-bottom-nav" aria-label="Mobile Navigation">
+        <button type="button" class="mobile-nav-item active" id="mobile-tab-dashboard" data-tab="dashboard" onclick="App.navigate('dashboard')">
+          <span class="mobile-nav-icon">📊</span>
+          <span class="mobile-nav-label">Home</span>
+        </button>
+        <button type="button" class="mobile-nav-item" id="mobile-tab-rooms" data-tab="rooms" onclick="App.navigate('rooms')">
+          <span class="mobile-nav-icon">🏠</span>
+          <span class="mobile-nav-label">Rooms</span>
+        </button>
+        <button type="button" class="mobile-nav-item" id="mobile-tab-tenants" data-tab="tenants" onclick="App.navigate('tenants')">
+          <span class="mobile-nav-icon">👥</span>
+          <span class="mobile-nav-label">Tenants</span>
+        </button>
+        <button type="button" class="mobile-nav-item" id="mobile-tab-rent" data-tab="rent" onclick="App.navigate('rent')">
+          <span class="mobile-nav-icon">💰</span>
+          <span class="mobile-nav-label">Rent</span>
+        </button>
+        <button type="button" class="mobile-nav-item" id="mobile-tab-more" onclick="App.openNavDrawer()" aria-label="More Options">
+          <span class="mobile-nav-icon">☰</span>
+          <span class="mobile-nav-label">More</span>
+        </button>
+      </nav>
+    </div>
+  </div>
+
+  <!-- ══ TOP RIGHT THREE-DOTS MENU DRAWER / BOARD ═══════════════ -->
+  <div id="app-nav-drawer-overlay" class="app-nav-drawer-overlay" onclick="App.closeNavDrawer()">
+    <div class="app-nav-drawer" onclick="event.stopPropagation()">
+      <div class="drawer-header">
+        <div class="drawer-brand">
+          <div class="drawer-brand-logo">
+            <img src="angel-logo.png" alt="Angel's PG Management">
+          </div>
+          <div>
+            <div class="drawer-brand-title">Angel's PG Management</div>
+            <div class="drawer-brand-sub">Management Suite</div>
+          </div>
+        </div>
+        <button class="drawer-close" onclick="App.closeNavDrawer()">✕</button>
+      </div>
+
+      <div class="drawer-menu-list">
+        <div class="drawer-section-label">Main Tabs</div>
+
+        <button type="button" class="drawer-item" data-drawer-tab="dashboard" onclick="App.navigateFromDrawer('dashboard')">
+          <span class="drawer-item-icon">📊</span>
+          <span class="drawer-item-label">Home</span>
+        </button>
+
+        <button type="button" class="drawer-item" data-drawer-tab="rooms" onclick="App.navigateFromDrawer('rooms')">
+          <span class="drawer-item-icon">🏠</span>
+          <span class="drawer-item-label">Rooms</span>
+        </button>
+
+        <button type="button" class="drawer-item" data-drawer-tab="tenants" onclick="App.navigateFromDrawer('tenants')">
+          <span class="drawer-item-icon">👥</span>
+          <span class="drawer-item-label">Tenants</span>
+        </button>
+
+        <button type="button" class="drawer-item" data-drawer-tab="rent" onclick="App.navigateFromDrawer('rent')">
+          <span class="drawer-item-icon">💰</span>
+          <span class="drawer-item-label">Rent</span>
+        </button>
+
+        <button type="button" class="drawer-item" data-drawer-tab="history" onclick="App.navigateFromDrawer('history')">
+          <span class="drawer-item-icon">📜</span>
+          <span class="drawer-item-label">Payment History</span>
+          <span class="drawer-item-badge">New</span>
+        </button>
+
+        <button type="button" class="drawer-item" data-drawer-tab="expenses" onclick="App.navigateFromDrawer('expenses')">
+          <span class="drawer-item-icon">💸</span>
+          <span class="drawer-item-label">Expenses</span>
+        </button>
+
+        <button type="button" class="drawer-item" data-drawer-tab="settings" onclick="App.navigateFromDrawer('settings')">
+          <span class="drawer-item-icon">⚙️</span>
+          <span class="drawer-item-label">Settings</span>
+        </button>
+
+        <div class="drawer-divider"></div>
+        <div class="drawer-section-label">Quick Actions</div>
+
+        <button type="button" class="drawer-item" onclick="App.openRentView('invoices')">
+          <span class="drawer-item-icon">🧾</span>
+          <span class="drawer-item-label">Invoices &amp; Receipts</span>
+        </button>
+
+        <button type="button" class="drawer-item" onclick="App.openRentView('deposits')">
+          <span class="drawer-item-icon">🛡️</span>
+          <span class="drawer-item-label">Security Deposits</span>
+        </button>
+
+        <button type="button" class="drawer-item" onclick="App.openRentView('analytics')">
+          <span class="drawer-item-icon">📈</span>
+          <span class="drawer-item-label">Revenue Analytics</span>
+        </button>
+
+        <button type="button" class="drawer-item" onclick="App.closeNavDrawer(); Agreements.openMainScreen();">
+          <span class="drawer-item-icon">📄</span>
+          <span class="drawer-item-label">Rent Agreements</span>
+        </button>
+
+        <button type="button" class="drawer-item" onclick="App.closeNavDrawer(); BusinessCard.openShareModal();">
+          <span class="drawer-item-icon">🪪</span>
+          <span class="drawer-item-label">Share Business Card</span>
+        </button>
+
+        <button type="button" class="drawer-item" onclick="App.closeNavDrawer(); WhatsApp.openReminderModal();">
+          <span class="drawer-item-icon">📲</span>
+          <span class="drawer-item-label">WhatsApp Reminders</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ CHATBOT CONTAINER ═════════════════════════════════════ -->
+  <div id="chatbot-container"></div>
+
+  <!-- ══ MODAL SHEET ═══════════════════════════════════════════ -->
+  <div id="modal-overlay" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <span class="modal-title" id="modal-title"></span>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- ══ TOAST CONTAINER ═══════════════════════════════════════ -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- ══ SCRIPTS ════════════════════════════════════════════════ -->
+  <script src="sounds.js?v=4"></script>
+  <script src="libs/qrcode.min.js?v=4"></script>
+  <script src="data.js?v=4"></script>
+  <script src="aadhaar.js?v=4"></script>
+  <script src="whatsapp.js?v=4"></script>
+  <script src="dashboard.js?v=4"></script>
+  <script src="rooms.js?v=4"></script>
+  <script src="tenants.js?v=4"></script>
+  <script src="rent.js?v=4"></script>
+  <script src="history.js?v=4"></script>
+  <script src="custom-date-picker.js?v=4"></script>
+  <script src="expenses.js?v=4"></script>
+  <script src="map.js?v=4"></script>
+  <script src="settings.js?v=4"></script>
+  <script src="business-card.js?v=4"></script>
+  <script src="agreements.js?v=4"></script>
+  <script src="chatbot.js?v=4"></script>
+  <script src="app.js?v=4"></script>
+
+  <script>
+    // ── TAB SWITCHING: show/hide tab content divs ──────────
+    const _origNavigate = App.navigate.bind(App);
+    App.navigate = function(tab) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      const el = document.getElementById('tab-' + tab);
+      if (el) el.classList.add('active');
+      _origNavigate(tab);
+    };
+
+    // ── KEYBOARD SUPPORT ─────────────────────────────────
+    document.addEventListener('keydown', e => {
+      const authScreen = document.getElementById('auth-screen');
+      if (authScreen && authScreen.style.display !== 'none') {
+        if (e.key >= '0' && e.key <= '9') App.pressKey(e.key);
+        if (e.key === 'Backspace') App.pressKey('⌫');
+      }
+      if (e.key === 'Escape') {
+        closeModal();
+        if (window.App && typeof window.App.closeNavDrawer === 'function') {
+          window.App.closeNavDrawer();
+        }
+      }
+    });
+
+
+
+    // ── THEME SYNC ────────────────────────────────────────
+    const _origToggleDark = Settings.toggleDark.bind(Settings);
+    Settings.toggleDark = function(val) {
+      _origToggleDark(val);
+      const btn = document.getElementById('btn-theme-header');
+      if (btn) btn.textContent = val ? '☀️' : '🌙';
+      const sideLabel = document.getElementById('sidebar-theme-label');
+      if (sideLabel) sideLabel.textContent = val ? '☀️ Light Mode' : '🌙 Dark Mode';
+      if (App.currentTab === 'settings') Settings.render();
+    };
+
+    // Set correct theme icon on load
+    document.addEventListener('DOMContentLoaded', () => {
+      const isDark = DB.getDarkMode();
+      const btn = document.getElementById('btn-theme-header');
+      if (btn) btn.textContent = isDark ? '☀️' : '🌙';
+      const sideLabel = document.getElementById('sidebar-theme-label');
+      if (sideLabel) sideLabel.textContent = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+
+      // ── GLOBAL HAPTIC CLICK HANDLER ──────────────────────
+      document.addEventListener('click', (e) => {
+        try {
+          const target = e.target.closest('button, .card, .stat-card, .room-card, .tenant-card, .bed-chip, .floor-card, .expense-row, .payment-row, .setting-item, .toggle-switch, select, .header-action, .chatbot-chip');
+          if (!target) return;
+
+          if (target.classList.contains('pin-btn')) return;
+          if (target.classList.contains('chatbot-fab')) return;
+          if (target.classList.contains('chatbot-close-btn')) return;
+          if (target.classList.contains('chatbot-q-btn')) return;
+          if (target.classList.contains('chatbot-back-btn')) return;
+          if (target.classList.contains('nav-item')) return;
+          if (target.classList.contains('modal-close')) return;
+
+          if (target.classList.contains('toggle-switch') || target.closest('.toggle-switch')) {
+            if (typeof SoundFX !== 'undefined' && SoundFX.toggle) SoundFX.toggle();
+            return;
+          }
+
+          if (target.classList.contains('card') || target.classList.contains('stat-card') ||
+              target.classList.contains('room-card') || target.classList.contains('tenant-card') ||
+              target.classList.contains('floor-card') || target.classList.contains('bed-chip') ||
+              target.classList.contains('expense-row') || target.classList.contains('payment-row')) {
+            if (typeof SoundFX !== 'undefined' && SoundFX.cardTap) SoundFX.cardTap();
+            return;
+          }
+
+          if (target.classList.contains('header-action')) {
+            if (typeof SoundFX !== 'undefined' && SoundFX.buttonClick) SoundFX.buttonClick();
+            return;
+          }
+
+          if (target.classList.contains('setting-item')) {
+            if (typeof SoundFX !== 'undefined' && SoundFX.cardTap) SoundFX.cardTap();
+            return;
+          }
+
+          if (target.tagName === 'SELECT') {
+            if (typeof SoundFX !== 'undefined' && SoundFX.dropdown) SoundFX.dropdown();
+            return;
+          }
+
+          if (target.tagName === 'BUTTON') {
+            if (typeof SoundFX !== 'undefined' && SoundFX.buttonClick) SoundFX.buttonClick();
+            return;
+          }
+        } catch (err) {}
+      });
+    });
+  </script>
+</body>
+</html>
