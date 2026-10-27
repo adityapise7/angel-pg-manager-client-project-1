@@ -677,12 +677,18 @@ const DB = {
     this._set(this.KEYS.SUBSCRIPTION, sub);
   },
   getAppPricing() {
-    return this._get(this.KEYS.APP_PRICING) || {
-      monthlyPrice: 499,
-      payeeUpi: 'angelpg@upi',
-      payeeName: "Angel's PG Management",
-      whatsappNumber: '919876543210'
-    };
+    const saved = this._get(this.KEYS.APP_PRICING);
+    if (!saved || saved.monthlyPrice !== 1500 || saved.payeeUpi !== 'adityajeevanpise@okicici') {
+      const updated = {
+        monthlyPrice: 1500,
+        payeeUpi: 'adityajeevanpise@okicici',
+        payeeName: 'Aditya Jeevan Pise',
+        whatsappNumber: '919876543210'
+      };
+      this._set(this.KEYS.APP_PRICING, updated);
+      return updated;
+    }
+    return saved;
   },
   saveAppPricing(pricing) {
     this._set(this.KEYS.APP_PRICING, pricing);

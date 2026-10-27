@@ -221,12 +221,13 @@ const SubscriptionManager = {
     const prop = DB.getProperty() || {};
     const user = window.AuthManager ? window.AuthManager.getUser() : null;
 
-    const payeeUpi = pricing.payeeUpi || 'angelpg@upi';
-    const payeeName = pricing.payeeName || "Angel's PG Management";
-    const monthlyPrice = pricing.monthlyPrice || 499;
+    const payeeUpi = pricing.payeeUpi || 'adityajeevanpise@okicici';
+    const payeeName = pricing.payeeName || 'Aditya Jeevan Pise';
+    const monthlyPrice = pricing.monthlyPrice || 1500;
+    const officialQrPath = 'assets/subscription-qr.png';
 
     const cleanProp = encodeURIComponent(payeeName);
-    const upiPayload = `upi://pay?pa=${encodeURIComponent(payeeUpi)}&pn=${cleanProp}&am=${monthlyPrice}&cu=INR&tn=Angel+PG+Pro+Subscription`;
+    const upiPayload = `upi://pay?pa=${encodeURIComponent(payeeUpi)}&pn=${cleanProp}&am=${monthlyPrice}&cu=INR&tn=Angel+PG+1+Month+Subscription`;
 
     // Generate dynamic QR Code Data URL
     let qrUrl = '';
@@ -311,19 +312,15 @@ const SubscriptionManager = {
           <p class="sub-pay-instruction">Scan with GPay, PhonePe, Paytm, or BHIM to pay <strong>₹${monthlyPrice}</strong></p>
 
           <div class="sub-qr-wrapper">
-            <img src="${qrUrl}" alt="UPI Subscription QR Code" class="sub-qr-image" />
+            <img src="${officialQrPath}" onerror="this.onerror=null;this.src='${qrUrl}'" alt="UPI Subscription QR Code (Fixed ₹${monthlyPrice})" class="sub-qr-image" onclick="SubscriptionManager.openUpiPayment()" style="cursor:pointer;" title="Tap to open UPI app (Fixed ₹${monthlyPrice})" />
             <div class="sub-upi-meta">
               <span class="sub-upi-label">Payee UPI ID:</span>
               <code class="sub-upi-code" id="sub-copy-upi">${payeeUpi}</code>
               <button type="button" class="btn-copy-upi" onclick="SubscriptionManager.copyUpi('${payeeUpi}')">📋 Copy</button>
             </div>
-          </div>
-
-          <!-- Direct UPI Intent on Android/iOS -->
-          <div style="margin: 12px 0;">
-            <a href="${upiPayload}" class="btn-pay-intent">
-              <span>📱 Open in UPI App (GPay / PhonePe / Paytm)</span>
-            </a>
+            <div style="margin-top:8px; display:inline-flex; align-items:center; gap:6px; background:rgba(34,197,94,0.12); color:#16a34a; padding:5px 12px; border-radius:8px; font-size:12px; font-weight:700;">
+              🔒 Fixed Amount: ₹${monthlyPrice} (Only ₹${monthlyPrice} can be paid from this QR code)
+            </div>
           </div>
 
           <!-- UTR / Payment Submission Form -->
@@ -361,6 +358,16 @@ const SubscriptionManager = {
             </div>
           </div>
 
+          <!-- Bottom Button Redirecting to UPI Payments Page -->
+          <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);">
+            <a href="${upiPayload}" onclick="SubscriptionManager.openUpiPayment();" class="btn-pay-intent" style="display:flex; align-items:center; justify-content:center; gap:10px; width:100%; box-sizing:border-box; text-decoration:none; padding:15px 20px; border-radius:12px; font-weight:700; font-size:16px; background:linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color:#ffffff; box-shadow:0 6px 18px rgba(34,197,94,0.35); text-align:center;">
+              <span>📱 Proceed to UPI Payments Page (Pay ₹${monthlyPrice}) ➔</span>
+            </a>
+            <div style="font-size:11px; color:var(--text-muted); text-align:center; margin-top:6px;">
+              Opens Google Pay, PhonePe, Paytm, or BHIM with locked amount ₹${monthlyPrice}
+            </div>
+          </div>
+
           ${status.isLocked ? `
             <div style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px;">
               <button type="button" class="btn-sub-signout" onclick="AuthManager.signOut()">🚪 Sign Out / Switch Account</button>
@@ -384,12 +391,13 @@ const SubscriptionManager = {
     }
 
     const pricing = DB.getAppPricing();
-    const payeeUpi = pricing.payeeUpi || 'angelpg@upi';
-    const payeeName = pricing.payeeName || "Angel's PG Management";
-    const monthlyPrice = pricing.monthlyPrice || 499;
+    const payeeUpi = pricing.payeeUpi || 'adityajeevanpise@okicici';
+    const payeeName = pricing.payeeName || 'Aditya Jeevan Pise';
+    const monthlyPrice = pricing.monthlyPrice || 1500;
+    const officialQrPath = 'assets/subscription-qr.png';
 
     const cleanProp = encodeURIComponent(payeeName);
-    const upiPayload = `upi://pay?pa=${encodeURIComponent(payeeUpi)}&pn=${cleanProp}&am=${monthlyPrice}&cu=INR&tn=Angel+PG+Pro+Subscription`;
+    const upiPayload = `upi://pay?pa=${encodeURIComponent(payeeUpi)}&pn=${cleanProp}&am=${monthlyPrice}&cu=INR&tn=Angel+PG+1+Month+Subscription`;
 
     let qrUrl = '';
     if (typeof QRCode !== 'undefined' && QRCode.toDataURL) {
@@ -409,21 +417,18 @@ const SubscriptionManager = {
 
         <div class="paywall-price-banner">
           <div class="paywall-price-val">₹${monthlyPrice} <span>/ month</span></div>
-          <div class="paywall-price-meta">Full Cloud Access · Mobile &amp; Desktop</div>
+          <div class="paywall-price-meta">Full Cloud Access · Mobile &amp; Desktop · Fixed QR Payment</div>
         </div>
 
         <div class="paywall-qr-container">
-          <img src="${qrUrl}" alt="UPI Subscription QR" class="paywall-qr-img" />
+          <img src="${officialQrPath}" onerror="this.onerror=null;this.src='${qrUrl}'" alt="UPI Subscription QR (Fixed ₹${monthlyPrice})" class="paywall-qr-img" onclick="SubscriptionManager.openUpiPayment()" style="cursor:pointer;" title="Tap to open UPI app (Fixed ₹${monthlyPrice})" />
           <div class="paywall-upi-line">
             <span>UPI ID:</span> <strong>${payeeUpi}</strong>
             <button type="button" class="btn-copy-upi-sm" onclick="SubscriptionManager.copyUpi('${payeeUpi}')">📋 Copy</button>
           </div>
-        </div>
-
-        <div style="margin: 10px 0;">
-          <a href="${upiPayload}" class="btn-pay-intent">
-            <span>📱 Pay ₹${monthlyPrice} via UPI App</span>
-          </a>
+          <div style="margin-top:8px; display:inline-flex; align-items:center; gap:6px; background:rgba(34,197,94,0.12); color:#16a34a; padding:5px 12px; border-radius:8px; font-size:12px; font-weight:700;">
+            🔒 Fixed Amount: ₹${monthlyPrice} (Only ₹${monthlyPrice} can be paid from this QR code)
+          </div>
         </div>
 
         <form id="form-paywall-utr" onsubmit="SubscriptionManager.handlePaymentSubmit(event)">
@@ -440,6 +445,16 @@ const SubscriptionManager = {
           <button type="button" class="btn-whatsapp-proof" onclick="SubscriptionManager.sendWhatsAppProof('${payeeUpi}', ${monthlyPrice})">
             <span>💬 Send Proof on WhatsApp</span>
           </button>
+        </div>
+
+        <!-- Prominent Bottom Button to Redirect to UPI Payments Page -->
+        <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border);">
+          <a href="${upiPayload}" onclick="SubscriptionManager.openUpiPayment();" class="btn-pay-intent" style="display:flex; align-items:center; justify-content:center; gap:10px; width:100%; box-sizing:border-box; text-decoration:none; padding:15px 20px; border-radius:12px; font-weight:700; font-size:16px; background:linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color:#ffffff; box-shadow:0 6px 18px rgba(34,197,94,0.35); text-align:center;">
+            <span>📱 Proceed to UPI Payments Page (Pay ₹${monthlyPrice}) ➔</span>
+          </a>
+          <div style="font-size:11px; color:var(--text-muted); text-align:center; margin-top:6px;">
+            Opens Google Pay, PhonePe, Paytm, or BHIM with locked amount ₹${monthlyPrice}
+          </div>
         </div>
 
         <div class="sub-key-accordion" style="margin-top: 12px;">
@@ -610,6 +625,20 @@ const SubscriptionManager = {
   },
 
   // ── 8. WHATSAPP & UPI HELPERS ────────────────────────────────
+  openUpiPayment() {
+    const pricing = DB.getAppPricing();
+    const payeeUpi = pricing.payeeUpi || 'adityajeevanpise@okicici';
+    const payeeName = encodeURIComponent(pricing.payeeName || 'Aditya Jeevan Pise');
+    const amount = pricing.monthlyPrice || 1500;
+    const note = encodeURIComponent('Angel PG 1 Month Subscription');
+    const upiUri = `upi://pay?pa=${payeeUpi}&pn=${payeeName}&am=${amount}&cu=INR&tn=${note}`;
+    try {
+      window.location.href = upiUri;
+    } catch (e) {
+      console.warn('[Subscription] UPI launch warning:', e);
+    }
+  },
+
   copyUpi(upiId) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(upiId).then(() => {
@@ -696,9 +725,9 @@ const SubscriptionManager = {
   saveOwnerConfig(event) {
     if (event) event.preventDefault();
 
-    const price = Number(document.getElementById('cfg-sub-price')?.value) || 499;
-    const upi = (document.getElementById('cfg-sub-upi')?.value || '').trim() || 'angelpg@upi';
-    const name = (document.getElementById('cfg-sub-name')?.value || '').trim() || "Angel's PG Management";
+    const price = Number(document.getElementById('cfg-sub-price')?.value) || 1500;
+    const upi = (document.getElementById('cfg-sub-upi')?.value || '').trim() || 'adityajeevanpise@okicici';
+    const name = (document.getElementById('cfg-sub-name')?.value || '').trim() || 'Aditya Jeevan Pise';
     const phone = (document.getElementById('cfg-sub-phone')?.value || '').trim() || '919876543210';
 
     const pricing = {

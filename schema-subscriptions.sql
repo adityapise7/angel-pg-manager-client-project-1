@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS public.user_subscriptions (
     status TEXT NOT NULL DEFAULT 'trial', -- 'trial', 'active', 'expired', 'pending'
     subscription_end TIMESTAMPTZ,
     plan_name TEXT DEFAULT 'Monthly Pro',
-    price_inr NUMERIC DEFAULT 499,
+    price_inr NUMERIC DEFAULT 1500,
     last_payment_ref TEXT,
     last_payment_date TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,

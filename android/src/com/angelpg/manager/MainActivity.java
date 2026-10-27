@@ -109,6 +109,18 @@ public class MainActivity extends Activity {
                     }
                 }
 
+                // Handle UPI payment links (upi://)
+                if (url.startsWith("upi://")) {
+                    try {
+                        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                        startActivity(intent);
+                        return true;
+                    } catch (ActivityNotFoundException e) {
+                        Toast.makeText(MainActivity.this, "No UPI payment app found. Please install Google Pay, PhonePe, or Paytm.", Toast.LENGTH_LONG).show();
+                        return true;
+                    }
+                }
+
                 // Handle Telephone links
                 if (url.startsWith("tel:")) {
                     try {
