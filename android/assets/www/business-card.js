@@ -101,7 +101,7 @@ const BusinessCard = {
     }
     custom = custom || {};
 
-    const fallbackName = prop.name ? prop.name.trim() : 'ANGEL PG MANAGEMENT';
+    const fallbackName = prop.name ? prop.name.trim() : 'PG PROPERTY MANAGEMENT';
     const pgName = (custom.pgName !== undefined && custom.pgName !== null && custom.pgName.trim() !== '')
       ? custom.pgName.trim()
       : fallbackName;
@@ -588,7 +588,7 @@ const BusinessCard = {
                   <label class="bc-field-label">
                     <span>PG / Business Name *</span>
                   </label>
-                  <input class="form-input" id="ed-bc-name" value="${this._escapeHtml(this.editorDraft.pgName)}" oninput="BusinessCard.editorUpdateLive()" placeholder="e.g. ANGEL PG MANAGEMENT">
+                  <input class="form-input" id="ed-bc-name" value="${this._escapeHtml(this.editorDraft.pgName)}" oninput="BusinessCard.editorUpdateLive()" placeholder="e.g. Sri Balaji Luxury PG">
                 </div>
 
                 <!-- Tagline -->
@@ -643,7 +643,7 @@ const BusinessCard = {
                       <input type="checkbox" id="chk-bc-email" ${this.editorDraft.visibleFields.email ? 'checked' : ''} onchange="BusinessCard.editorUpdateLive()"> Show
                     </label>
                   </label>
-                  <input class="form-input" id="ed-bc-email" value="${this._escapeHtml(this.editorDraft.email)}" oninput="BusinessCard.editorUpdateLive()" placeholder="contact@angelpg.com">
+                  <input class="form-input" id="ed-bc-email" value="${this._escapeHtml(this.editorDraft.email)}" oninput="BusinessCard.editorUpdateLive()" placeholder="contact@example.com">
                 </div>
 
                 <!-- Address -->
@@ -665,7 +665,7 @@ const BusinessCard = {
                       <input type="checkbox" id="chk-bc-website" ${this.editorDraft.visibleFields.website ? 'checked' : ''} onchange="BusinessCard.editorUpdateLive()"> Show
                     </label>
                   </label>
-                  <input class="form-input" id="ed-bc-website" value="${this._escapeHtml(this.editorDraft.website)}" oninput="BusinessCard.editorUpdateLive()" placeholder="https://angelpg.com">
+                  <input class="form-input" id="ed-bc-website" value="${this._escapeHtml(this.editorDraft.website)}" oninput="BusinessCard.editorUpdateLive()" placeholder="https://example.com">
                 </div>
 
                 <!-- Amenities Line -->

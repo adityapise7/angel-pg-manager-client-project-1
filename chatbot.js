@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // ANGEL'S PG MANAGEMENT — AI CHATBOT (Fixed Questions Edition)
 // No keyboard, no typing — only preset questions with
 // instant answers powered by live PG data
@@ -43,7 +43,7 @@ const Chatbot = {
     const container = document.getElementById('chatbot-container');
     if (!container) return;
     container.innerHTML = `
-      <button class="chatbot-fab" id="chatbot-fab" onclick="Chatbot.toggle()" title="Ask Angel's AI">
+      <button class="chatbot-fab" id="chatbot-fab" onclick="Chatbot.toggle()" title="Ask Rentora AI">
         <span class="chatbot-fab-icon">🤖</span>
         <span class="chatbot-pulse"></span>
       </button>
@@ -52,7 +52,7 @@ const Chatbot = {
           <div style="display:flex;align-items:center;gap:12px">
             <div class="chatbot-avatar-wrap">🤖</div>
             <div>
-              <div class="chatbot-name">Angel's AI</div>
+              <div class="chatbot-name">Rentora AI</div>
               <div class="chatbot-status"><span class="chatbot-dot"></span>Instant answers</div>
             </div>
           </div>

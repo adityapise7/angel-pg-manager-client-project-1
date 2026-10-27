@@ -6,7 +6,7 @@
 
 const SubscriptionManager = {
   TRIAL_DAYS: 10,
-  MASTER_KEY: 'ANGEL-PRO-2026',
+  MASTER_KEY: 'RENTORA-PRO-2026',
   _initialized: false,
   _currentSub: null,
 
@@ -292,7 +292,7 @@ const SubscriptionManager = {
         ${!status.isLocked ? `<button type="button" class="sub-modal-close" onclick="closeModal()">✕</button>` : ''}
 
         <div class="sub-modal-header">
-          <div class="sub-badge-pill">👑 ANGEL PG PRO</div>
+          <div class="sub-badge-pill">👑 RENTORA PRO</div>
           <h2>Upgrade to Unlimited PG Suite</h2>
           <p>Everything you need to automate floors, rooms, tenants, rent collections, and cloud records.</p>
         </div>
@@ -390,14 +390,14 @@ const SubscriptionManager = {
     `;
 
     if (typeof showModal === 'function') {
-      showModal('👑 Upgrade to Angel PG Pro', modalHtml);
+      showModal('👑 Upgrade to Rentora Pro', modalHtml);
     } else if (typeof openModal === 'function') {
       openModal(modalHtml);
     } else {
       const titleEl = document.getElementById('modal-title');
       const bodyEl = document.getElementById('modal-body');
       const overlayEl = document.getElementById('modal-overlay');
-      if (titleEl) titleEl.textContent = '👑 Upgrade to Angel PG Pro';
+      if (titleEl) titleEl.textContent = '👑 Upgrade to Rentora Pro';
       if (bodyEl) bodyEl.innerHTML = modalHtml;
       if (overlayEl) overlayEl.classList.add('open');
     }
@@ -435,7 +435,7 @@ const SubscriptionManager = {
         <div class="paywall-icon-badge">🔒</div>
         <h2>10-Day Free Trial Expired</h2>
         <p class="paywall-sub">
-          Your free trial has ended. Subscribe to <strong>Angel's PG Management Pro</strong> to unlock your data and continue managing properties.
+          Your free trial has ended. Subscribe to <strong>Rentora Pro</strong> to unlock your data and continue managing properties.
         </p>
 
         <div class="paywall-price-banner">
@@ -572,9 +572,9 @@ const SubscriptionManager = {
     try { if (typeof SoundFX !== 'undefined' && SoundFX.pinSuccess) SoundFX.pinSuccess(); } catch (e) {}
 
     if (typeof showToast === 'function') {
-      showToast('🎉 Subscription Active! Your account has been upgraded to Angel PG Pro.', 'success');
+      showToast('🎉 Subscription Active! Your account has been upgraded to Rentora Pro.', 'success');
     } else {
-      alert('Subscription Active! Welcome to Angel PG Pro.');
+      alert('Subscription Active! Welcome to Rentora Pro.');
     }
 
     if (window.App && typeof window.App.navigate === 'function') {
@@ -594,7 +594,7 @@ const SubscriptionManager = {
       return;
     }
 
-    if (key === this.MASTER_KEY || key === 'ANGEL-PRO' || key === 'LIFETIME-VIP') {
+    if (key === this.MASTER_KEY || key === 'RENTORA-PRO' || key === 'ANGEL-PRO-2026' || key === 'ANGEL-PRO' || key === 'LIFETIME-VIP') {
       const user = window.AuthManager ? window.AuthManager.getUser() : null;
       if (!user) return;
 
@@ -653,7 +653,7 @@ const SubscriptionManager = {
     const payeeUpi = pricing.payeeUpi || 'adityajeevanpise@okicici';
     const payeeName = encodeURIComponent(pricing.payeeName || 'Aditya Jeevan Pise');
     const amount = pricing.monthlyPrice || 1500;
-    const note = encodeURIComponent('Angel PG 1 Month Subscription');
+    const note = encodeURIComponent('Rentora 1 Month Subscription');
     const upiUri = `upi://pay?pa=${payeeUpi}&pn=${payeeName}&am=${amount}&cu=INR&tn=${note}`;
     try {
       window.location.href = upiUri;
@@ -689,12 +689,12 @@ const SubscriptionManager = {
     const pricing = DB.getAppPricing();
     const phone = pricing.whatsappNumber || '919876543210';
 
-    const msg = `*Angel PG Pro Subscription Payment Proof*\n\n` +
+    const msg = `*Rentora Pro Subscription Payment Proof*\n\n` +
       `👤 *Account Email:* ${email}\n` +
       `💰 *Amount Paid:* ₹${amount}\n` +
       `💳 *Paid To UPI:* ${payeeUpi}\n` +
       `🔢 *Transaction / UTR:* ${utr}\n\n` +
-      `Please confirm my Angel PG Pro access. Thank you!`;
+      `Please confirm my Rentora Pro access. Thank you!`;
 
     const waUrl = `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`;
     window.open(waUrl, '_blank');

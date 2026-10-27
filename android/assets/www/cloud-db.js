@@ -151,29 +151,53 @@
         if (hasCloud) {
           // Cloud has data: ALWAYS pull authoritative cloud data into local DB
           console.log('[CloudDB] Pulling authoritative data from Supabase Cloud...');
+          localStorage.setItem('rentora_user_id', user.id);
           await this.pullAllData(user.id, false);
           this.updateSyncBadge('synced', 'Cloud Synced');
           if (typeof showToast === 'function') {
             showToast('☁️ Cloud data synchronized across devices', 'success');
           }
-        } else if (hasLocal) {
-          // Cloud is empty for this user, but this device has local data -> push to cloud
-          console.log('[CloudDB] Cloud is empty. Backing up local PG data to cloud...');
-          await this.pushLocalDataToCloud(user.id);
-          this.updateSyncBadge('synced', 'Cloud Synced');
-          if (typeof showToast === 'function') {
-            showToast('☁️ Local PG data backed up to Cloud!', 'success');
-          }
         } else {
-          // Both are empty: initialize default property in cloud
-          console.log('[CloudDB] Fresh account. Initializing property in cloud...');
-          await this.pushLocalDataToCloud(user.id);
-          this.updateSyncBadge('synced', 'Cloud Synced');
+          // Cloud is empty for this user.
+          // CRITICAL MULTI-TENANT ISOLATION CHECK:
+          // If local data belonged to a previous user or session, clear it immediately
+          // so new PG owners do NOT inherit Angel PG or other owners' private records!
+          const previousOwnerId = localStorage.getItem('rentora_user_id');
+          if (previousOwnerId && previousOwnerId !== user.id) {
+            console.log('[CloudDB] New owner detected. Purging previous cached records for isolation.');
+            this.clearLocalData();
+          }
+          localStorage.setItem('rentora_user_id', user.id);
+
+          const hasLocalClean = this.checkHasLocalData();
+          if (hasLocalClean && previousOwnerId === user.id) {
+            console.log('[CloudDB] Backing up local PG data to cloud...');
+            await this.pushLocalDataToCloud(user.id);
+            this.updateSyncBadge('synced', 'Cloud Synced');
+          } else {
+            console.log('[CloudDB] Fresh account. Awaiting owner onboarding...');
+            this.updateSyncBadge('synced', 'Ready for Setup');
+          }
         }
       } catch (err) {
         console.error('[CloudDB] onUserSignedIn sync failed:', err);
         this.updateSyncBadge('error', 'Sync Issue');
       }
+    },
+
+    clearLocalData() {
+      try {
+        localStorage.removeItem(DB.KEYS.PROPERTY);
+        localStorage.removeItem(DB.KEYS.FLOORS);
+        localStorage.removeItem(DB.KEYS.ROOMS);
+        localStorage.removeItem(DB.KEYS.BEDS);
+        localStorage.removeItem(DB.KEYS.TENANTS);
+        localStorage.removeItem(DB.KEYS.PAYMENTS);
+        localStorage.removeItem(DB.KEYS.EXPENSES);
+        localStorage.removeItem(DB.KEYS.OTHER_INCOME);
+        localStorage.removeItem(DB.KEYS.AGREEMENTS);
+        localStorage.removeItem('rentora_onboarding_completed');
+      } catch (e) {}
     },
 
     onUserSignedOut() {
@@ -186,16 +210,9 @@
         this._realtimeChannel = null;
       }
       // Clear local storage for all PG entities to prevent data bleed between accounts
+      this.clearLocalData();
       try {
-        localStorage.removeItem(DB.KEYS.PROPERTY);
-        localStorage.removeItem(DB.KEYS.FLOORS);
-        localStorage.removeItem(DB.KEYS.ROOMS);
-        localStorage.removeItem(DB.KEYS.BEDS);
-        localStorage.removeItem(DB.KEYS.TENANTS);
-        localStorage.removeItem(DB.KEYS.PAYMENTS);
-        localStorage.removeItem(DB.KEYS.EXPENSES);
-        localStorage.removeItem(DB.KEYS.OTHER_INCOME);
-        localStorage.removeItem(DB.KEYS.AGREEMENTS);
+        localStorage.removeItem('rentora_user_id');
       } catch (e) {}
     },
 
@@ -261,6 +278,27 @@
           localProp.electricityRate = p.electricity_rate != null ? Number(p.electricity_rate) : localProp.electricityRate;
           if (p.logo) localProp.logo = p.logo;
           localProp.logoUploaded = p.logo_uploaded != null ? p.logo_uploaded : localProp.logoUploaded;
+          
+          // SaaS Fields
+          if (p.pg_type) localProp.pgType = p.pg_type;
+          if (p.locality) localProp.locality = p.locality;
+          if (p.city) localProp.city = p.city;
+          if (p.state) localProp.state = p.state;
+          if (p.pin_code) localProp.pinCode = p.pin_code;
+          if (p.buildings_count) localProp.buildingsCount = p.buildings_count;
+          if (p.total_capacity) localProp.totalCapacity = p.total_capacity;
+          if (p.security_deposit != null) localProp.securityDeposit = Number(p.security_deposit);
+          if (p.rent_due_date != null) localProp.rentDueDate = Number(p.rent_due_date);
+          if (p.late_fee_enabled != null) localProp.lateFeeEnabled = p.late_fee_enabled;
+          if (p.late_fee_amount != null) localProp.lateFeeAmount = Number(p.late_fee_amount);
+          if (p.late_fee_grace_days != null) localProp.lateFeeGraceDays = Number(p.late_fee_grace_days);
+          if (p.facilities) localProp.facilities = p.facilities;
+          if (p.upi_id) { localProp.upiId = p.upi_id; localProp.bankId = p.upi_id; }
+          if (p.upi_qr_type) localProp.upiQrType = p.upi_qr_type;
+          if (p.onboarding_completed != null) {
+            localProp.onboardingCompleted = p.onboarding_completed;
+            if (p.onboarding_completed) localStorage.setItem('rentora_onboarding_completed', 'true');
+          }
           DB._set(DB.KEYS.PROPERTY, localProp);
         }
 
@@ -431,10 +469,10 @@
       try {
         // 1. Property
         const prop = DB.getProperty() || {};
-        await client.from('properties').upsert({
+        const propPayload = {
           id: prop.id || 'prop_' + userId.slice(0, 8),
           user_id: userId,
-          name: prop.name || "Angel's PG Management",
+          name: prop.name || 'My PG Property',
           owner: prop.owner || '',
           phone: prop.phone || '',
           address: prop.address || '',
@@ -445,7 +483,44 @@
           logo: prop.logo || '',
           logo_uploaded: !!prop.logoUploaded,
           updated_at: new Date().toISOString()
-        });
+        };
+        if (prop.pgType) propPayload.pg_type = prop.pgType;
+        if (prop.locality) propPayload.locality = prop.locality;
+        if (prop.city) propPayload.city = prop.city;
+        if (prop.state) propPayload.state = prop.state;
+        if (prop.pinCode) propPayload.pin_code = prop.pinCode;
+        if (prop.buildingsCount) propPayload.buildings_count = prop.buildingsCount;
+        if (prop.totalCapacity) propPayload.total_capacity = prop.totalCapacity;
+        if (prop.securityDeposit != null) propPayload.security_deposit = prop.securityDeposit;
+        if (prop.rentDueDate != null) propPayload.rent_due_date = prop.rentDueDate;
+        if (prop.lateFeeEnabled != null) propPayload.late_fee_enabled = prop.lateFeeEnabled;
+        if (prop.lateFeeAmount != null) propPayload.late_fee_amount = prop.lateFeeAmount;
+        if (prop.lateFeeGraceDays != null) propPayload.late_fee_grace_days = prop.lateFeeGraceDays;
+        if (prop.facilities) propPayload.facilities = prop.facilities;
+        if (prop.upiId) propPayload.upi_id = prop.upiId;
+        if (prop.upiQrType) propPayload.upi_qr_type = prop.upiQrType;
+        if (prop.onboardingCompleted != null) propPayload.onboarding_completed = prop.onboardingCompleted;
+
+        try {
+          await client.from('properties').upsert(propPayload);
+        } catch (pErr) {
+          console.warn('[CloudDB] Extended property upsert fallback:', pErr);
+          await client.from('properties').upsert({
+            id: prop.id || 'prop_' + userId.slice(0, 8),
+            user_id: userId,
+            name: prop.name || 'My PG Property',
+            owner: prop.owner || '',
+            phone: prop.phone || '',
+            address: prop.address || '',
+            currency: prop.currency || '₹',
+            default_bed_price: prop.defaultBedPrice || 5000,
+            default_capacity: prop.defaultCapacity || 2,
+            electricity_rate: prop.electricityRate || 8,
+            logo: prop.logo || '',
+            logo_uploaded: !!prop.logoUploaded,
+            updated_at: new Date().toISOString()
+          });
+        }
 
         // 2. Floors
         const floors = DB.getFloors() || [];
@@ -730,10 +805,10 @@
       try {
         if (key === DB.KEYS.PROPERTY) {
           const prop = val || {};
-          await client.from('properties').upsert({
+          const propPayload = {
             id: prop.id || 'prop_' + userId.slice(0, 8),
             user_id: userId,
-            name: prop.name || "Angel's PG Management",
+            name: prop.name || 'My PG Property',
             owner: prop.owner || '',
             phone: prop.phone || '',
             address: prop.address || '',
@@ -744,7 +819,44 @@
             logo: prop.logo || '',
             logo_uploaded: !!prop.logoUploaded,
             updated_at: new Date().toISOString()
-          });
+          };
+          if (prop.pgType) propPayload.pg_type = prop.pgType;
+          if (prop.locality) propPayload.locality = prop.locality;
+          if (prop.city) propPayload.city = prop.city;
+          if (prop.state) propPayload.state = prop.state;
+          if (prop.pinCode) propPayload.pin_code = prop.pinCode;
+          if (prop.buildingsCount) propPayload.buildings_count = prop.buildingsCount;
+          if (prop.totalCapacity) propPayload.total_capacity = prop.totalCapacity;
+          if (prop.securityDeposit != null) propPayload.security_deposit = prop.securityDeposit;
+          if (prop.rentDueDate != null) propPayload.rent_due_date = prop.rentDueDate;
+          if (prop.lateFeeEnabled != null) propPayload.late_fee_enabled = prop.lateFeeEnabled;
+          if (prop.lateFeeAmount != null) propPayload.late_fee_amount = prop.lateFeeAmount;
+          if (prop.lateFeeGraceDays != null) propPayload.late_fee_grace_days = prop.lateFeeGraceDays;
+          if (prop.facilities) propPayload.facilities = prop.facilities;
+          if (prop.upiId) propPayload.upi_id = prop.upiId;
+          if (prop.upiQrType) propPayload.upi_qr_type = prop.upiQrType;
+          if (prop.onboardingCompleted != null) propPayload.onboarding_completed = prop.onboardingCompleted;
+
+          try {
+            await client.from('properties').upsert(propPayload);
+          } catch (pErr) {
+            console.warn('[CloudDB] Extended property upsert fallback:', pErr);
+            await client.from('properties').upsert({
+              id: prop.id || 'prop_' + userId.slice(0, 8),
+              user_id: userId,
+              name: prop.name || 'My PG Property',
+              owner: prop.owner || '',
+              phone: prop.phone || '',
+              address: prop.address || '',
+              currency: prop.currency || '₹',
+              default_bed_price: prop.defaultBedPrice || 5000,
+              default_capacity: prop.defaultCapacity || 2,
+              electricity_rate: prop.electricityRate || 8,
+              logo: prop.logo || '',
+              logo_uploaded: !!prop.logoUploaded,
+              updated_at: new Date().toISOString()
+            });
+          }
         }
         else if (key === DB.KEYS.FLOORS) {
           const floors = Array.isArray(val) ? val : [];

@@ -3,15 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="description" content="Angel's PG Management — Premium PG & Hostel Management for multi-floor, multi-room, multi-bed properties.">
+  <meta name="description" content="Rentora — Universal PG &amp; Hostel Management SaaS Platform for multi-floor, multi-room, multi-bed properties.">
   <meta name="theme-color" content="#061329">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Angel's PG Management</title>
-  <link rel="icon" type="image/png" href="angel-logo.png">
-  <link rel="apple-touch-icon" href="angel-logo.png">
-  <link rel="stylesheet" href="style.css?v=8">
-  <link rel="stylesheet" href="responsive.css?v=8">
+  <title>Rentora — Universal PG Management Platform</title>
+  <link rel="icon" type="image/png" href="rentora-logo.png">
+  <link rel="apple-touch-icon" href="rentora-logo.png">
+  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="responsive.css?v=9">
+  <link rel="stylesheet" href="onboarding.css?v=1">
   <script>try{var s=document.createElement('script');s.src='env.js';document.head.appendChild(s);}catch(e){}</script>
   <script src="libs/supabase.min.js"></script>
   <script>if (typeof window.supabase === 'undefined') { document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>'); }</script>
@@ -39,7 +40,7 @@
   </script>
 
   <!-- ══ SPLASH / CINEMATIC LOADING SCREEN ═════════════════════ -->
-  <div id="splash-screen" role="dialog" aria-modal="true" aria-label="Loading Angel's PG Management">
+  <div id="splash-screen" role="dialog" aria-modal="true" aria-label="Loading Rentora">
     <div class="splash-bg-glow"></div>
     <div class="splash-container">
       <!-- Outer Frame Glow & Border Reveal -->
@@ -49,21 +50,15 @@
         
         <!-- Main Logo Image with Sheen Overlay -->
         <div class="splash-logo-card">
-          <img src="angel-logo.png" alt="Angel's PG Management Logo" class="splash-logo-img" id="splash-logo-img">
+          <img src="rentora-logo.png" alt="Rentora Logo" class="splash-logo-img" id="splash-logo-img">
           <div class="splash-logo-sheen"></div>
         </div>
       </div>
-      <script>
-        if (window._savedPgLogo) {
-          var sImg = document.getElementById('splash-logo-img');
-          if (sImg) sImg.src = window._savedPgLogo;
-        }
-      </script>
 
       <!-- App Title Branding -->
       <div class="splash-brand">
-        <h2 class="splash-title">ANGEL'S</h2>
-        <span class="splash-subtitle">PG MANAGEMENT</span>
+        <h2 class="splash-title">RENTORA</h2>
+        <span class="splash-subtitle">UNIVERSAL PG MANAGEMENT PLATFORM</span>
       </div>
 
       <!-- Minimal Progress Indicator -->
@@ -83,10 +78,10 @@
       <div class="auth-brand-header">
         <div class="auth-logo-card">
           <div class="auth-logo-glow"></div>
-          <img src="angel-logo.png" alt="Angel's PG Management Logo" class="auth-logo-img" id="auth-logo-img">
+          <img src="rentora-logo.png" alt="Rentora Logo" class="auth-logo-img" id="auth-logo-img">
         </div>
-        <h1 class="auth-title">Angel's PG Management</h1>
-        <p class="auth-subtitle">Cloud Property &amp; Tenant Management Suite</p>
+        <h1 class="auth-title">Rentora</h1>
+        <p class="auth-subtitle">Universal PG &amp; Hostel Management SaaS Platform</p>
       </div>
 
       <!-- Segmented Auth Tab Switcher -->
@@ -220,11 +215,11 @@
     <aside class="desktop-sidebar" aria-label="Desktop Navigation">
       <div class="sidebar-brand" onclick="App.navigate('dashboard')">
         <div class="sidebar-brand-logo">
-          <img src="angel-logo.png" alt="Angel's PG Management">
+          <img src="rentora-logo.png" alt="Rentora">
         </div>
         <div class="sidebar-brand-text">
-          <div class="sidebar-brand-title">Angel's PG</div>
-          <div class="sidebar-brand-sub">Management Suite</div>
+          <div class="sidebar-brand-title">Rentora</div>
+          <div class="sidebar-brand-sub" id="sidebar-sub-pg-name">PG Management Platform</div>
         </div>
       </div>
 
@@ -384,11 +379,11 @@
       <div class="drawer-header">
         <div class="drawer-brand">
           <div class="drawer-brand-logo">
-            <img src="angel-logo.png" alt="Angel's PG Management">
+            <img src="rentora-logo.png" alt="Rentora">
           </div>
           <div>
-            <div class="drawer-brand-title">Angel's PG Management</div>
-            <div class="drawer-brand-sub">Management Suite</div>
+            <div class="drawer-brand-title">Rentora</div>
+            <div class="drawer-brand-sub">Universal PG Platform</div>
           </div>
         </div>
         <button class="drawer-close" onclick="App.closeNavDrawer()">✕</button>
@@ -528,8 +523,9 @@
   <script src="business-card.js?v=5"></script>
   <script src="agreements.js?v=5"></script>
   <script src="chatbot.js?v=5"></script>
-  <script src="subscription.js?v=1"></script>
-  <script src="app.js?v=7"></script>
+  <script src="subscription.js?v=2"></script>
+  <script src="onboarding.js?v=1"></script>
+  <script src="app.js?v=8"></script>
 
   <script>
     // ── TAB SWITCHING: show/hide tab content divs ──────────

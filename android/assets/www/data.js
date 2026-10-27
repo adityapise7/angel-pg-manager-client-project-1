@@ -250,7 +250,7 @@ const DB = {
     if (prop.logo && typeof prop.logo === 'string') {
       const trimmed = prop.logo.trim();
       if (trimmed.startsWith('data:image/') || trimmed.startsWith('blob:')) return true;
-      if (trimmed && !trimmed.endsWith('rudra-logo.png') && !trimmed.endsWith('angel-logo.png') && !trimmed.endsWith('vivantha-logo.png')) {
+      if (trimmed && !trimmed.endsWith('rudra-logo.png') && !trimmed.endsWith('angel-logo.png') && !trimmed.endsWith('rentora-logo.png') && !trimmed.endsWith('vivantha-logo.png')) {
         return true;
       }
     }
@@ -265,10 +265,33 @@ const DB = {
   },
 
   getDefaultLogo() {
-    if (typeof DEFAULT_APP_LOGO_BASE64 !== 'undefined' && DEFAULT_APP_LOGO_BASE64) {
-      return DEFAULT_APP_LOGO_BASE64;
+    return 'rentora-logo.png';
+  },
+
+  // ── ONBOARDING STATUS HELPERS ─────────────────────────────
+  isOnboardingCompleted() {
+    const prop = this.getProperty();
+    if (prop && prop.onboardingCompleted === true) return true;
+    if (localStorage.getItem('rentora_onboarding_completed') === 'true') return true;
+    // Check legacy Angel PG account with existing records
+    const floors = this.getFloors();
+    const rooms = this.getRooms();
+    const tenants = this.getTenants();
+    if ((floors && floors.length > 0) || (rooms && rooms.length > 0) || (tenants && tenants.length > 0)) {
+      if (prop && !prop.onboardingCompleted) {
+        prop.onboardingCompleted = true;
+        this.saveProperty(prop);
+      }
+      return true;
     }
-    return 'angel-logo.png';
+    return false;
+  },
+
+  setOnboardingCompleted(val = true) {
+    const prop = this.getProperty();
+    prop.onboardingCompleted = !!val;
+    localStorage.setItem('rentora_onboarding_completed', val ? 'true' : 'false');
+    this.saveProperty(prop);
   },
 
   // ── BANK UPI ID & PAYMENT QR HELPERS ──────────────────────
@@ -302,7 +325,8 @@ const DB = {
     let prop = this._get(this.KEYS.PROPERTY);
     if (!prop) {
       prop = {
-        name: "Angel's PG Management",
+        name: 'My PG Property',
+        pgType: 'Co-living',
         owner: 'Owner',
         phone: '',
         address: 'Your PG Address',
@@ -312,16 +336,14 @@ const DB = {
         defaultBedPrice: 5000,
         currency: '₹',
         electricityRate: 8,
+        onboardingCompleted: false,
+        facilities: ['Wi-Fi', 'Housekeeping', 'Water (RO)', 'Security / CCTV']
       };
       this.saveProperty(prop);
     } else {
       let changed = false;
-      if (prop.name === 'Royal Blue PG' || prop.name === "Angel's PG" || prop.name === "Angel's PG Management App" || prop.name === 'Rudra PG' || prop.name === 'Rudra PG Management') {
-        prop.name = "Angel's PG Management";
-        changed = true;
-      }
-      if (!prop.address || prop.address.includes('MG Road') || prop.address.includes('Sant tukaram Nagar')) {
-        prop.address = 'Your PG Address';
+      if (prop.name === 'Royal Blue PG' || prop.name === 'Rudra PG' || prop.name === 'Rudra PG Management') {
+        prop.name = 'My PG Property';
         changed = true;
       }
       if (prop.logoUploaded === undefined) {
@@ -329,7 +351,7 @@ const DB = {
           prop.logoUploaded = true;
         } else {
           prop.logoUploaded = false;
-          if (prop.logo === 'angel-logo.png') prop.logo = '';
+          if (prop.logo === 'angel-logo.png' || prop.logo === 'rentora-logo.png') prop.logo = '';
         }
         changed = true;
       }

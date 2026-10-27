@@ -14,49 +14,65 @@ const Settings = {
 
         <!-- Property Info -->
         <div class="settings-section">
-          <div class="settings-label">🏠 Property Information</div>
+          <div class="settings-label">🏢 PG Property Profile</div>
           <div class="settings-item" onclick="Settings.editProperty()">
-            <div class="settings-item-icon" style="background:var(--accent-blue-light)">🏠</div>
+            <div class="settings-item-icon" style="background:var(--accent-blue-light)">🏢</div>
             <div class="settings-item-info">
               <div class="settings-item-title">${prop.name}</div>
-              <div class="settings-item-sub">${prop.owner || 'Tap to set owner'} · ${prop.phone || 'No phone'}</div>
+              <div class="settings-item-sub">${prop.pgType || 'Co-living'} · ${prop.owner || 'Tap to set owner'} · ${prop.phone || 'No phone'}</div>
             </div>
             <span class="settings-item-value">›</span>
           </div>
           <div class="settings-item" onclick="Settings.editProperty()">
             <div class="settings-item-icon" style="background:var(--accent-purple-light)">📍</div>
             <div class="settings-item-info">
-              <div class="settings-item-title">Address</div>
-              <div class="settings-item-sub">${prop.address || 'Tap to set address'}</div>
+              <div class="settings-item-title">Address &amp; Location</div>
+              <div class="settings-item-sub">${prop.address || (prop.locality ? `${prop.locality}, ${prop.city}` : 'Tap to set address')}</div>
+            </div>
+            <span class="settings-item-value">›</span>
+          </div>
+          <div class="settings-item" onclick="Settings.editProperty()">
+            <div class="settings-item-icon" style="background:var(--accent-green-light)">🏘️</div>
+            <div class="settings-item-info">
+              <div class="settings-item-title">Capacity &amp; Buildings</div>
+              <div class="settings-item-sub">${prop.totalCapacity || 10} beds capacity · ${prop.buildingsCount || 1} building(s)</div>
             </div>
             <span class="settings-item-value">›</span>
           </div>
         </div>
 
-        <!-- Defaults -->
+        <!-- Rent & Payment Defaults -->
         <div class="settings-section">
-          <div class="settings-label">🛏️ Room & Bed Defaults</div>
+          <div class="settings-label">💰 Rent, Deposits &amp; Rules</div>
           <div class="settings-item" onclick="Settings.editDefaults()">
             <div class="settings-item-icon" style="background:var(--accent-green-light)">💰</div>
             <div class="settings-item-info">
-              <div class="settings-item-title">Default Bed Price</div>
+              <div class="settings-item-title">Default Monthly Rent</div>
               <div class="settings-item-sub">${formatCurrency(prop.defaultBedPrice, prop.currency)} per month</div>
             </div>
             <span class="settings-item-value">›</span>
           </div>
           <div class="settings-item" onclick="Settings.editDefaults()">
-            <div class="settings-item-icon" style="background:var(--accent-amber-light)">🛏️</div>
+            <div class="settings-item-icon" style="background:var(--accent-amber-light)">🛡️</div>
             <div class="settings-item-info">
-              <div class="settings-item-title">Default Room Capacity</div>
-              <div class="settings-item-sub">${prop.defaultCapacity} beds per room</div>
+              <div class="settings-item-title">Security Deposit</div>
+              <div class="settings-item-sub">${formatCurrency(prop.securityDeposit || prop.defaultBedPrice, prop.currency)} default deposit</div>
             </div>
             <span class="settings-item-value">›</span>
           </div>
           <div class="settings-item" onclick="Settings.editDefaults()">
-            <div class="settings-item-icon" style="background:var(--accent-blue-light)">⚡</div>
+            <div class="settings-item-icon" style="background:var(--accent-purple-light)">📅</div>
             <div class="settings-item-info">
-              <div class="settings-item-title">Electricity Rate</div>
-              <div class="settings-item-sub">${prop.currency}${prop.electricityRate} per unit</div>
+              <div class="settings-item-title">Monthly Due Date &amp; Late Rules</div>
+              <div class="settings-item-sub">Due on Day ${prop.rentDueDate || 5} · ${prop.lateFeeEnabled ? `Fine: ${prop.currency}${prop.lateFeeAmount}` : 'No late fee'}</div>
+            </div>
+            <span class="settings-item-value">›</span>
+          </div>
+          <div class="settings-item" onclick="Settings.editAmenities()">
+            <div class="settings-item-icon" style="background:var(--accent-blue-light)">🌟</div>
+            <div class="settings-item-info">
+              <div class="settings-item-title">Included Amenities (${(prop.facilities || []).length})</div>
+              <div class="settings-item-sub">${(prop.facilities || []).slice(0, 4).join(', ') || 'Tap to configure amenities'}</div>
             </div>
             <span class="settings-item-value">›</span>
           </div>
@@ -264,89 +280,260 @@ const Settings = {
         </div>
 
         <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:12px">
-          Angel's PG Management v2.0 · Cloud Edition<br>
-          Connected to Supabase · Row Level Security (RLS) Active
+          Rentora SaaS Platform v2.0 · Universal Edition<br>
+          Connected to Supabase · Multi-Tenant Row Level Security (RLS) Active
         </div>
       </div>
     `;
   },
 
-  // ── PROPERTY EDIT ──────────────────────────────────────────
+  // ── PROPERTY PROFILE EDIT ──────────────────────────────────
   editProperty() {
-    const p = DB.getProperty();
-    showModal('🏠 Property Information', `
-      <div class="form-group"><label class="form-label">Property Name *</label>
-        <input class="form-input" id="inp-prop-name" value="${p.name}"></div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Owner Name</label>
-          <input class="form-input" id="inp-prop-owner" value="${p.owner || ''}"></div>
-        <div class="form-group"><label class="form-label">Phone</label>
-          <input class="form-input" id="inp-prop-phone" value="${p.phone || ''}" type="tel"></div>
+    const p = DB.getProperty() || {};
+    showModal('🏢 PG Property Profile', `
+      <div class="form-group">
+        <label class="form-label">PG Name *</label>
+        <input class="form-input" id="inp-prop-name" value="${p.name || ''}" placeholder="e.g. Sri Balaji Luxury PG">
       </div>
-      <div class="form-group"><label class="form-label">Professional Tagline (Optional)</label>
-        <input class="form-input" id="inp-prop-tagline" value="${p.tagline || ''}" placeholder="e.g. Your trusted home away from home"></div>
-      <div class="form-group"><label class="form-label">Address</label>
-        <textarea class="form-textarea" id="inp-prop-address">${p.address || ''}</textarea></div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">PG Category / Type</label>
+          <select class="form-input" id="inp-prop-type">
+            <option value="Boys PG" ${p.pgType === 'Boys PG' ? 'selected' : ''}>Boys PG</option>
+            <option value="Girls PG" ${p.pgType === 'Girls PG' ? 'selected' : ''}>Girls PG</option>
+            <option value="Co-living" ${(!p.pgType || p.pgType === 'Co-living') ? 'selected' : ''}>Co-living</option>
+            <option value="Other" ${p.pgType === 'Other' ? 'selected' : ''}>Hostel / Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Primary Contact Phone</label>
+          <input class="form-input" id="inp-prop-phone" value="${p.phone || ''}" type="tel" placeholder="e.g. 9876543210">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Owner / Administrator Name</label>
+          <input class="form-input" id="inp-prop-owner" value="${p.owner || ''}" placeholder="e.g. Ramesh Kumar">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Professional Tagline</label>
+          <input class="form-input" id="inp-prop-tagline" value="${p.tagline || ''}" placeholder="e.g. Premium student &amp; executive living">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Address (Locality / Street)</label>
+        <input class="form-input" id="inp-prop-locality" value="${p.locality || ''}" placeholder="e.g. 5th Cross, Koramangala">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">City</label>
+          <input class="form-input" id="inp-prop-city" value="${p.city || ''}" placeholder="e.g. Bengaluru">
+        </div>
+        <div class="form-group">
+          <label class="form-label">State</label>
+          <input class="form-input" id="inp-prop-state" value="${p.state || ''}" placeholder="e.g. Karnataka">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">PIN Code</label>
+          <input class="form-input" id="inp-prop-pin" value="${p.pinCode || ''}" placeholder="e.g. 560034" maxlength="6">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Number of Buildings</label>
+          <input class="form-input" id="inp-prop-buildings" type="number" min="1" value="${p.buildingsCount || 1}">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Total Bed Capacity</label>
+        <input class="form-input" id="inp-prop-capacity" type="number" min="1" value="${p.totalCapacity || 10}">
+      </div>
+
       <div class="form-actions">
         <button class="btn btn-ghost btn-full" onclick="closeModal()">Cancel</button>
-        <button class="btn btn-primary btn-full" onclick="Settings.saveProperty()">Save</button>
+        <button class="btn btn-primary btn-full" onclick="Settings.saveProperty()">Save Changes</button>
       </div>
     `);
   },
 
   saveProperty() {
-    const p = DB.getProperty();
-    DB.saveProperty({
+    const p = DB.getProperty() || {};
+    const name = document.getElementById('inp-prop-name')?.value.trim() || p.name;
+    const pgType = document.getElementById('inp-prop-type')?.value || p.pgType || 'Co-living';
+    const owner = document.getElementById('inp-prop-owner')?.value.trim() || p.owner;
+    const phone = document.getElementById('inp-prop-phone')?.value.trim() || p.phone;
+    const tagline = document.getElementById('inp-prop-tagline')?.value.trim() || '';
+    const locality = document.getElementById('inp-prop-locality')?.value.trim() || '';
+    const city = document.getElementById('inp-prop-city')?.value.trim() || '';
+    const state = document.getElementById('inp-prop-state')?.value.trim() || '';
+    const pin = document.getElementById('inp-prop-pin')?.value.trim() || '';
+    const buildings = parseInt(document.getElementById('inp-prop-buildings')?.value) || p.buildingsCount || 1;
+    const capacity = parseInt(document.getElementById('inp-prop-capacity')?.value) || p.totalCapacity || 10;
+
+    let fullAddr = [locality, city, state, pin].filter(Boolean).join(', ');
+    if (!fullAddr) fullAddr = p.address || 'Your PG Address';
+
+    const updated = {
       ...p,
-      name: document.getElementById('inp-prop-name').value.trim() || p.name,
-      owner: document.getElementById('inp-prop-owner').value.trim(),
-      phone: document.getElementById('inp-prop-phone').value.trim(),
-      tagline: (document.getElementById('inp-prop-tagline') ? document.getElementById('inp-prop-tagline').value.trim() : (p.tagline || '')),
-      address: document.getElementById('inp-prop-address').value.trim(),
-    });
+      name,
+      pgType,
+      owner,
+      phone,
+      tagline,
+      locality,
+      city,
+      state,
+      pinCode: pin,
+      address: fullAddr,
+      buildingsCount: buildings,
+      totalCapacity: capacity,
+      updatedAt: new Date().toISOString()
+    };
+
+    DB.saveProperty(updated);
     closeModal();
     if (typeof App !== 'undefined' && typeof App.syncGlobalBranding === 'function') {
       App.syncGlobalBranding();
     }
     this.render();
-    showToast('✅ Property updated!', 'success');
+    showToast('✅ PG Property Profile updated!', 'success');
   },
 
   // ── DEFAULTS EDIT ──────────────────────────────────────────
   editDefaults() {
-    const p = DB.getProperty();
-    showModal('🛏️ Room & Bed Defaults', `
+    const p = DB.getProperty() || {};
+    showModal('💰 Rent, Deposits & Rules', `
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Default Bed Price</label>
-          <input class="form-input" id="inp-def-price" type="number" value="${p.defaultBedPrice}"></div>
-        <div class="form-group"><label class="form-label">Default Capacity</label>
-          <input class="form-input" id="inp-def-cap" type="number" value="${p.defaultCapacity}" min="1"></div>
+        <div class="form-group">
+          <label class="form-label">Default Monthly Rent</label>
+          <input class="form-input" id="inp-def-price" type="number" value="${p.defaultBedPrice || 5000}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Security Deposit</label>
+          <input class="form-input" id="inp-def-deposit" type="number" value="${p.securityDeposit || p.defaultBedPrice || 5000}">
+        </div>
       </div>
+
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Currency Symbol</label>
-          <input class="form-input" id="inp-def-cur" value="${p.currency}"></div>
-        <div class="form-group"><label class="form-label">Electricity Rate (/unit)</label>
-          <input class="form-input" id="inp-def-elec" type="number" value="${p.electricityRate}"></div>
+        <div class="form-group">
+          <label class="form-label">Monthly Rent Due Date</label>
+          <select class="form-input" id="inp-def-due-date">
+            ${[1,2,3,4,5,6,7,8,9,10,15,20,25].map(d => `
+              <option value="${d}" ${(p.rentDueDate || 5) === d ? 'selected' : ''}>Day ${d} of each month</option>
+            `).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Currency Symbol</label>
+          <input class="form-input" id="inp-def-cur" value="${p.currency || '₹'}">
+        </div>
       </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Late Fee Fine (₹)</label>
+          <input class="form-input" id="inp-def-latefee" type="number" value="${p.lateFeeAmount || 50}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Grace Period (Days)</label>
+          <input class="form-input" id="inp-def-grace" type="number" value="${p.lateFeeGraceDays || 3}">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Electricity Rate (/unit)</label>
+        <input class="form-input" id="inp-def-elec" type="number" value="${p.electricityRate || 8}">
+      </div>
+
       <div class="form-actions">
         <button class="btn btn-ghost btn-full" onclick="closeModal()">Cancel</button>
-        <button class="btn btn-primary btn-full" onclick="Settings.saveDefaults()">Save</button>
+        <button class="btn btn-primary btn-full" onclick="Settings.saveDefaults()">Save Changes</button>
       </div>
     `);
   },
 
   saveDefaults() {
-    const p = DB.getProperty();
-    DB.saveProperty({
+    const p = DB.getProperty() || {};
+    const updated = {
       ...p,
       defaultBedPrice: parseFloat(document.getElementById('inp-def-price').value) || p.defaultBedPrice,
-      defaultCapacity: parseInt(document.getElementById('inp-def-cap').value) || p.defaultCapacity,
+      securityDeposit: parseFloat(document.getElementById('inp-def-deposit').value) || p.securityDeposit,
+      rentDueDate: parseInt(document.getElementById('inp-def-due-date').value) || p.rentDueDate || 5,
       currency: document.getElementById('inp-def-cur').value.trim() || p.currency,
+      lateFeeAmount: parseFloat(document.getElementById('inp-def-latefee').value) || 50,
+      lateFeeGraceDays: parseInt(document.getElementById('inp-def-grace').value) || 3,
+      lateFeeEnabled: true,
       electricityRate: parseFloat(document.getElementById('inp-def-elec').value) || p.electricityRate,
-    });
+      updatedAt: new Date().toISOString()
+    };
+    DB.saveProperty(updated);
     closeModal();
     this.render();
-    showToast('✅ Defaults updated!', 'success');
+    showToast('✅ Rent rules and defaults updated!', 'success');
+  },
+
+  // ── AMENITIES EDIT ─────────────────────────────────────────
+  editAmenities() {
+    const p = DB.getProperty() || {};
+    const current = p.facilities || ['Wi-Fi', 'Housekeeping', 'Water (RO)', 'Security / CCTV'];
+    const all = (window.OnboardingManager && window.OnboardingManager.availableFacilities) || [
+      { id: 'Wi-Fi', label: 'High-Speed Wi-Fi', icon: '📶' },
+      { id: 'Food / Mess', label: 'Food & Daily Mess', icon: '🍲' },
+      { id: 'Housekeeping', label: 'Daily Housekeeping', icon: '🧹' },
+      { id: 'Laundry', label: 'Laundry & Washing', icon: '🧺' },
+      { id: 'Power Backup', label: '24/7 Power Backup', icon: '⚡' },
+      { id: 'AC', label: 'Air Conditioning', icon: '❄️' },
+      { id: 'Geyser', label: 'Hot Water / Geyser', icon: '🚿' },
+      { id: 'Parking', label: 'Vehicle Parking', icon: '🚗' },
+      { id: 'Water (RO)', label: 'Purified RO Water', icon: '💧' },
+      { id: 'Security / CCTV', label: '24/7 CCTV Security', icon: '📹' },
+      { id: 'Gym', label: 'Fitness & Gym', icon: '🏋️' }
+    ];
+
+    let pillsHtml = all.map(f => {
+      const active = current.includes(f.id);
+      return `
+        <label class="amenity-pill ${active ? 'active' : ''}" onclick="this.classList.toggle('active')" data-facility="${f.id}" style="cursor:pointer">
+          <span class="amenity-icon">${f.icon}</span>
+          <span>${f.label}</span>
+        </label>
+      `;
+    }).join('');
+
+    showModal('🌟 Included Facilities & Amenities', `
+      <div style="font-size:13px; color:var(--text-secondary); margin-bottom:14px;">
+        Tap on amenities to toggle them on or off. Active amenities are automatically shown on rent agreements, invoices, and your digital business card.
+      </div>
+      <div class="amenities-pill-grid" id="settings-amenities-grid" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px;">
+        ${pillsHtml}
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost btn-full" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary btn-full" onclick="Settings.saveAmenities()">Save Amenities</button>
+      </div>
+    `);
+  },
+
+  saveAmenities() {
+    const p = DB.getProperty() || {};
+    const grid = document.getElementById('settings-amenities-grid');
+    if (!grid) return;
+    const selected = [];
+    grid.querySelectorAll('.amenity-pill.active').forEach(el => {
+      const id = el.dataset.facility;
+      if (id) selected.push(id);
+    });
+    p.facilities = selected;
+    DB.saveProperty(p);
+    closeModal();
+    this.render();
+    showToast(`✅ Saved ${selected.length} amenities!`, 'success');
   },
 
   // ── FLOORS (DELEGATED TO ROOMS & BEDS) ────────────────────

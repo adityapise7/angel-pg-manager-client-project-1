@@ -541,7 +541,7 @@ const Rent = {
     ctx.fillStyle = '#94A3B8';
     ctx.font = '12px Inter, Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`${prop.name || "Angel's PG Management"} · Powered by Angel's PG Management`, 400, 955);
+    ctx.fillText(`${prop.name || 'Rentora'} · Powered by Rentora`, 400, 955);
 
     return new Promise((resolve) => {
       canvas.toBlob((blob) => {
@@ -663,7 +663,7 @@ const Rent = {
       <div class="row"><span><strong>Payment Date:</strong></span><span>${formatDateDisplay(payment.date)}</span></div>
       <div class="row"><span><strong>Payment Method:</strong></span><span>${payment.method || 'UPI'}</span></div>
       <div class="row total"><span>Amount Paid:</span><span>${formatCurrency(payment.amount, cur)}</span></div>
-      <div class="footer">Powered by Angel's PG Management · ${new Date().toLocaleDateString('en-IN')}</div>
+      <div class="footer">Powered by Rentora · ${new Date().toLocaleDateString('en-IN')}</div>
       </body></html>`;
 
     const win = window.open('', '_blank');
@@ -689,7 +689,7 @@ const Rent = {
     const invoiceNum = payment.invoiceNumber || `INV-${(payment.month || '').replace('-','')}-${tenant.id.slice(-3).toUpperCase()}`;
     const roomText = `${info?.room?.name || 'Room'}, Bed ${info?.bed?.number || ''}${info?.floor?.name ? ' (' + info.floor.name + ')' : ''}`;
 
-    const messageText = `🧾 *RENT PAYMENT RECEIPT*\n\n*${prop.name || "Angel's PG Management"}*\n\nDear ${tenant.name},\n\nYour rent payment has been received successfully.\n\n📋 *Invoice No:* ${invoiceNum}\n📅 *Rent Month:* ${getMonthLabel(payment.month)}\n💰 *Amount Paid:* ${formatCurrency(payment.amount, cur)}\n💳 *Payment Method:* ${payment.method || 'UPI'}\n🗓️ *Payment Date:* ${formatDateDisplay(payment.date)}\n📍 *Room:* ${roomText}\n\nThank you!\n${prop.owner || 'PG Manager'}\n${prop.name || "Angel's PG Management"}\n\n_Powered by Angel's PG Management_`;
+    const messageText = `🧾 *RENT PAYMENT RECEIPT*\n\n*${prop.name || 'Rentora'}*\n\nDear ${tenant.name},\n\nYour rent payment has been received successfully.\n\n📋 *Invoice No:* ${invoiceNum}\n📅 *Rent Month:* ${getMonthLabel(payment.month)}\n💰 *Amount Paid:* ${formatCurrency(payment.amount, cur)}\\n💳 *Payment Method:* ${payment.method || 'UPI'}\n🗓️ *Payment Date:* ${formatDateDisplay(payment.date)}\n📍 *Room:* ${roomText}\n\nThank you!\n${prop.owner || 'PG Manager'}\n${prop.name || 'Rentora'}\n\n_Powered by Rentora_`;
 
     const cleanPhone = (tenant.phone || '').replace(/\D/g, '');
     const cfg = DB.getWAConfig ? DB.getWAConfig() : { countryCode: '91' };
@@ -977,7 +977,7 @@ const Rent = {
 
     let csv = '\uFEFF'; // UTF-8 BOM
     csv += `PROPERTY RENT COLLECTION SHEET - ${getMonthLabel(month).toUpperCase()}\n`;
-    csv += `Property:,"${(prop.name || "Angel's PG Management").replace(/"/g, '""')}"\n`;
+    csv += `Property:,"${(prop.name || 'Rentora').replace(/"/g, '""')}"\n`;
     csv += `Owner/Manager:,"${(prop.owner || 'Manager').replace(/"/g, '""')}"\n`;
     csv += `Exported On:,"${new Date().toLocaleDateString('en-IN')} ${new Date().toLocaleTimeString('en-IN')}"\n\n`;
 

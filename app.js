@@ -303,11 +303,10 @@ const App = {
     const splash = document.getElementById('splash-screen');
     if (!splash) return;
 
-    // Apply saved business logo immediately to splash image
-    const activeLogo = DB.getLogo();
+    // Use official Rentora logo for cinematic splash screen
     const splashImg = splash.querySelector('.splash-logo-img');
-    if (splashImg && activeLogo) {
-      splashImg.src = activeLogo;
+    if (splashImg) {
+      splashImg.src = 'rentora-logo.png';
     }
 
     // Minimum display time is 2.75s to allow 5-phase cinematic reveal to complete
@@ -334,34 +333,27 @@ const App = {
 
   // ── CENTRALIZED GLOBAL BRANDING SYNCHRONIZER ─────────────
   syncGlobalBranding() {
-    const prop = DB.getProperty();
+    const prop = DB.getProperty() || {};
     const hasCustom = DB.hasCustomLogo();
-    const activeLogo = DB.getLogo();
+    const activeLogo = hasCustom && prop.logo ? prop.logo : '';
 
-    // 1. Animated Splash Screen Logo
-    const splashImg = document.querySelector('.splash-logo-img');
-    if (splashImg && activeLogo) {
-      splashImg.src = activeLogo;
-    }
-
-    // 2. Auth / Numeric PIN Screen Logo
-    const authImg = document.querySelector('.rudra-auth-logo-img');
-    if (authImg && activeLogo) {
-      authImg.src = activeLogo;
-    }
-
-    // 3. Navigation Drawer & Desktop Sidebar Brand Logos
-    const drawerImgs = document.querySelectorAll('.drawer-brand-logo img, .sidebar-brand-logo img');
-    drawerImgs.forEach(img => {
-      if (activeLogo) img.src = activeLogo;
+    // 1. Navigation Drawer & Desktop Sidebar Platform Branding (Rentora)
+    const platformLogos = document.querySelectorAll('.drawer-brand-logo img, .sidebar-brand-logo img, #auth-logo-img');
+    platformLogos.forEach(img => {
+      img.src = 'rentora-logo.png';
     });
 
     const sidebarTitle = document.querySelector('.sidebar-brand-title');
-    if (sidebarTitle && prop.name) {
-      sidebarTitle.textContent = prop.name;
+    if (sidebarTitle) {
+      sidebarTitle.textContent = 'Rentora';
     }
 
-    // 4. Invalidate Image & Business Card Caches and synchronize saved Business Card
+    const sidebarSub = document.querySelector('.sidebar-brand-sub');
+    if (sidebarSub) {
+      sidebarSub.textContent = prop.name || 'PG Management Platform';
+    }
+
+    // 2. Invalidate Image & Business Card Caches and synchronize saved Business Card
     if (typeof ImageUtils !== 'undefined' && ImageUtils.clearImageCache) {
       ImageUtils.clearImageCache();
     }
@@ -381,32 +373,21 @@ const App = {
       }
     }
 
-    // 5. Update Home Dashboard Property Hero
+    // 3. Update Home Dashboard Property Hero with owner's custom logo (or icon)
     const heroImg = document.getElementById('dash-prop-hero-logo');
     if (heroImg && heroImg.tagName === 'IMG' && activeLogo) {
       heroImg.src = activeLogo;
     }
 
-    // 6. Dynamically update or dismiss Home Page Setup Reminder Bar
-    const reminderBar = document.getElementById('dash-logo-reminder-bar');
-    if (hasCustom) {
-      if (reminderBar) {
-        reminderBar.style.transition = 'all 0.3s ease';
-        reminderBar.style.opacity = '0';
-        reminderBar.style.transform = 'translateY(-10px)';
-        setTimeout(() => {
-          if (reminderBar && reminderBar.parentNode) {
-            reminderBar.parentNode.removeChild(reminderBar);
-          }
-        }, 300);
-      }
-    } else {
-      if (!reminderBar && this.currentTab === 'dashboard' && typeof Dashboard !== 'undefined') {
-        Dashboard.render();
+    // 4. Update Header Title if on Dashboard
+    if (this.currentTab === 'dashboard') {
+      const titleEl = document.getElementById('header-title');
+      if (titleEl && prop.name) {
+        titleEl.textContent = '🏢 ' + prop.name;
       }
     }
 
-    // 7. Refresh Settings UI if open
+    // 5. Refresh Settings UI if open
     if (this.currentTab === 'settings' && typeof Settings !== 'undefined' && Settings.render) {
       Settings.render();
     }
@@ -806,6 +787,13 @@ const App = {
     if (chatbot) {
       chatbot.style.display = 'block';
     }
+
+    // ── CHECK FIRST-TIME ONBOARDING WIZARD ──────────────────
+    if (window.OnboardingManager && typeof window.OnboardingManager.needsOnboarding === 'function' && window.OnboardingManager.needsOnboarding()) {
+      window.OnboardingManager.start();
+      return;
+    }
+
     this.navigate('dashboard');
     if (typeof Chatbot !== 'undefined') Chatbot.init();
 
@@ -898,16 +886,18 @@ window.App = App;
 
 function renderActiveTab() {
   const tab = App.currentTab;
+  const prop = (typeof DB !== 'undefined' && typeof DB.getProperty === 'function') ? DB.getProperty() : {};
   const titles = {
-    dashboard: '🏠 Dashboard',
-    rooms: '🏠 Rooms',
+    dashboard: (prop && prop.name) ? `🏢 ${prop.name}` : '📊 Rentora Dashboard',
+    rooms: '🏠 Rooms & Beds',
     tenants: '👥 Tenants',
-    rent: '💰 Rent',
+    rent: '💰 Rent Collection',
     history: '📜 Payment History',
-    expenses: '💸 Expenses',
+    expenses: '💸 Expenses & P&L',
     settings: '⚙️ Settings'
   };
-  document.getElementById('header-title').textContent = titles[tab] || '';
+  const titleEl = document.getElementById('header-title');
+  if (titleEl) titleEl.textContent = titles[tab] || '';
 
   switch (tab) {
     case 'dashboard': Dashboard.render(); break;

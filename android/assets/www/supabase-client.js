@@ -144,7 +144,7 @@
             this.currentSession = data.session;
             this.currentUser = data.session.user;
             if (typeof showToast === 'function') {
-              showToast('Email verified successfully! Welcome to Angel PG.', 'success');
+              showToast('Email verified successfully! Welcome to Rentora.', 'success');
             }
           }
           if (window.history && window.history.replaceState) {
@@ -172,7 +172,7 @@
             this.currentSession = data.session;
             this.currentUser = data.session.user;
             if (typeof showToast === 'function') {
-              showToast('Email verified successfully! Welcome to Angel PG.', 'success');
+              showToast('Email verified successfully! Welcome to Rentora.', 'success');
             }
           }
           if (window.history && window.history.replaceState) {
@@ -194,7 +194,7 @@
             this.currentSession = data.session;
             this.currentUser = data.session.user;
             if (typeof showToast === 'function') {
-              showToast('Email verified successfully! Welcome to Angel PG.', 'success');
+              showToast('Email verified successfully! Welcome to Rentora.', 'success');
             }
           }
           if (window.history && window.history.replaceState) {
@@ -327,7 +327,7 @@
     async signOut() {
       if (typeof SoundFX !== 'undefined' && SoundFX.buttonClick) SoundFX.buttonClick();
       
-      const confirmLogout = confirm('Are you sure you want to sign out from your Angel PG Cloud account?');
+      const confirmLogout = confirm('Are you sure you want to sign out from your Rentora Cloud account?');
       if (!confirmLogout) return;
 
       try {

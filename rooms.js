@@ -663,7 +663,8 @@ const Rooms = {
     MobileVerification._currentPhone = rawPhone;
 
     // Send via WhatsApp
-    const message = `🏠 Angel's PG Management - Tenant Verification\n\nYour verification code is: ${otp}\n\nPlease share this code with your PG owner to complete registration.`;
+    const propName = (typeof DB !== 'undefined' && DB.getProperty()?.name) ? DB.getProperty().name : 'Rentora';
+    const message = `🏠 ${propName} - Tenant Verification\n\nYour verification code is: ${otp}\n\nPlease share this code with your PG owner to complete registration.`;
     const whatsappUrl = `https://wa.me/91${rawPhone}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
 
