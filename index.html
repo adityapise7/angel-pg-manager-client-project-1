@@ -469,6 +469,9 @@
         <div class="drawer-divider"></div>
         <div class="drawer-section-label">Account &amp; Cloud</div>
 
+        <!-- SaaS Subscription & Trial Status Card in Drawer -->
+        <div class="sidebar-sub-card" id="drawer-subscription-badge" style="display: none; margin: 0 12px 10px 12px;" onclick="App.closeNavDrawer(); SubscriptionManager.openSubscriptionModal();"></div>
+
         <div class="drawer-user-info" style="padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; background: rgba(255,255,255,0.03); border-radius: var(--radius-md); margin: 0 12px 8px 12px;">
           <div>
             <div style="font-weight: 700; color: var(--text-primary); font-size: 0.95rem;" id="drawer-user-name">PG Owner</div>

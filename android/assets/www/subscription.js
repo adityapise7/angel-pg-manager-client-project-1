@@ -179,7 +179,7 @@ const SubscriptionManager = {
 
     if (status.isTrial) {
       badgeClass += ' trial-active';
-      badgeHtml = `<span class="badge-icon">⏱️</span> <span><strong>${status.daysLeft}d</strong> Free Trial Left · <u>Upgrade</u></span>`;
+      badgeHtml = `<span class="badge-icon">⏱️</span> <span><strong>${status.daysLeft}d</strong> Free Trial Left · <u style="cursor:pointer;" onclick="SubscriptionManager.openSubscriptionModal(); event.stopPropagation();">Upgrade</u></span>`;
     } else if (status.isActive) {
       badgeClass += ' sub-active';
       badgeHtml = `<span class="badge-icon">👑</span> <span><strong>Pro Active</strong> (${status.daysLeft}d left)</span>`;
@@ -188,7 +188,7 @@ const SubscriptionManager = {
       badgeHtml = `<span class="badge-icon">⏳</span> <span>Payment Verifying</span>`;
     } else if (status.isLocked) {
       badgeClass += ' trial-expired';
-      badgeHtml = `<span class="badge-icon">⚠️</span> <span><strong>Trial Expired</strong> · Pay to Unlock</span>`;
+      badgeHtml = `<span class="badge-icon">⚠️</span> <span><strong>Trial Expired</strong> · <u style="cursor:pointer;" onclick="SubscriptionManager.openSubscriptionModal(); event.stopPropagation();">Pay to Unlock</u></span>`;
     }
 
     if (badge) {
@@ -210,6 +210,18 @@ const SubscriptionManager = {
         sidebarBadge.innerHTML = badgeHtml;
         sidebarBadge.style.display = 'block';
         sidebarBadge.onclick = () => this.openSubscriptionModal();
+      }
+    }
+
+    const drawerBadge = document.getElementById('drawer-subscription-badge');
+    if (drawerBadge) {
+      if (status.status === 'guest') {
+        drawerBadge.style.display = 'none';
+      } else {
+        drawerBadge.className = 'sidebar-sub-card ' + badgeClass;
+        drawerBadge.innerHTML = badgeHtml;
+        drawerBadge.style.display = 'block';
+        drawerBadge.onclick = () => this.openSubscriptionModal();
       }
     }
   },
@@ -377,7 +389,18 @@ const SubscriptionManager = {
       </div>
     `;
 
-    openModal(modalHtml);
+    if (typeof showModal === 'function') {
+      showModal('👑 Upgrade to Angel PG Pro', modalHtml);
+    } else if (typeof openModal === 'function') {
+      openModal(modalHtml);
+    } else {
+      const titleEl = document.getElementById('modal-title');
+      const bodyEl = document.getElementById('modal-body');
+      const overlayEl = document.getElementById('modal-overlay');
+      if (titleEl) titleEl.textContent = '👑 Upgrade to Angel PG Pro';
+      if (bodyEl) bodyEl.innerHTML = modalHtml;
+      if (overlayEl) overlayEl.classList.add('open');
+    }
   },
 
   // ── 5. FULL-SCREEN UNCLOSABLE PAYWALL ─────────────────────────

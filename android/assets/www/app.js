@@ -922,20 +922,34 @@ function renderActiveTab() {
 
 // ── MODAL SYSTEM ────────────────────────────────────────────
 function showModal(title, bodyHtml) {
-  SoundFX.modalOpen();
-  document.getElementById('modal-title').textContent = title;
-  document.getElementById('modal-body').innerHTML = bodyHtml;
-  document.getElementById('modal-overlay').classList.add('open');
+  try { if (typeof SoundFX !== 'undefined' && SoundFX.modalOpen) SoundFX.modalOpen(); } catch (e) {}
+  const titleEl = document.getElementById('modal-title');
+  const bodyEl = document.getElementById('modal-body');
+  const overlay = document.getElementById('modal-overlay');
+  if (titleEl) titleEl.textContent = title || '';
+  if (bodyEl) bodyEl.innerHTML = bodyHtml || '';
+  if (overlay) overlay.classList.add('open');
 }
 
-function openModal() {
-  document.getElementById('modal-overlay').classList.add('open');
+function openModal(content) {
+  try { if (typeof SoundFX !== 'undefined' && SoundFX.modalOpen) SoundFX.modalOpen(); } catch (e) {}
+  if (content) {
+    const bodyEl = document.getElementById('modal-body');
+    if (bodyEl) bodyEl.innerHTML = content;
+  }
+  const overlay = document.getElementById('modal-overlay');
+  if (overlay) overlay.classList.add('open');
 }
 
 function closeModal() {
-  SoundFX.modalClose();
-  document.getElementById('modal-overlay').classList.remove('open');
+  try { if (typeof SoundFX !== 'undefined' && SoundFX.modalClose) SoundFX.modalClose(); } catch (e) {}
+  const overlay = document.getElementById('modal-overlay');
+  if (overlay) overlay.classList.remove('open');
 }
+
+window.showModal = showModal;
+window.openModal = openModal;
+window.closeModal = closeModal;
 
 // ── TOAST SYSTEM ────────────────────────────────────────────
 function showToast(msg, type = 'info') {
