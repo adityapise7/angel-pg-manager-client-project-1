@@ -188,6 +188,7 @@ const server = http.createServer((req, res) => {
     '.jpg': 'image/jpeg',
     '.svg': 'image/svg+xml',
     '.ico': 'image/x-icon',
+    '.apk': 'application/vnd.android.package-archive',
   };
 
   fs.readFile(filePath, (err, content) => {

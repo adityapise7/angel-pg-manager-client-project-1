@@ -11,6 +11,7 @@
   // Fallback defaults point directly to the project credentials stored in .env
   const DEFAULT_SUPABASE_URL = 'https://epgipizdldvrevihxyqf.supabase.co';
   const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_L95tfQXmRu8sw7gw16eLeg_ZMGpriwo';
+  const PRODUCTION_APP_URL = 'https://angel-pg-management.vercel.app';
 
   const env = (window.__ENV__ && typeof window.__ENV__ === 'object') ? window.__ENV__ : {};
   const SUPABASE_URL = env.SUPABASE_URL || DEFAULT_SUPABASE_URL;
@@ -137,13 +138,17 @@
       if (!cleanEmail) throw new Error('Please enter your email address');
       if (!password || password.length < 6) throw new Error('Password must be at least 6 characters long');
 
+      // Always redirect verification and confirmation links to the live Vercel production domain
+      const redirectUrl = PRODUCTION_APP_URL;
+
       const { data, error } = await this.client.auth.signUp({
         email: cleanEmail,
         password: password,
         options: {
+          emailRedirectTo: redirectUrl,
           data: {
             full_name: (fullName || '').trim(),
-            app_origin: window.location.origin
+            app_origin: redirectUrl
           }
         }
       });
@@ -161,7 +166,7 @@
       const cleanEmail = (email || '').trim().toLowerCase();
       if (!cleanEmail) throw new Error('Please enter your registered email address');
 
-      const redirectUrl = window.location.origin + window.location.pathname;
+      const redirectUrl = PRODUCTION_APP_URL;
       const { data, error } = await this.client.auth.resetPasswordForEmail(cleanEmail, {
         redirectTo: redirectUrl
       });
