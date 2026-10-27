@@ -60,6 +60,9 @@
         return;
       }
 
+      // Check for incoming verification link / code / hash parameters
+      await this.handleIncomingAuthUrl();
+
       try {
         const { data, error } = await this.client.auth.getSession();
         if (!error && data && data.session) {
@@ -96,6 +99,126 @@
       });
 
       this.isInitialized = true;
+    },
+
+    // ── HANDLE EMAIL VERIFICATION LINK OR REDIRECT CODE ───────
+    async handleIncomingAuthUrl() {
+      try {
+        const search = window.location.search || '';
+        const searchParams = new URLSearchParams(search);
+        const hash = window.location.hash ? window.location.hash.substring(1) : '';
+        const hashParams = new URLSearchParams(hash);
+
+        // 1. Check for error returned by Supabase
+        const errorDesc = searchParams.get('error_description') || hashParams.get('error_description') || searchParams.get('error') || hashParams.get('error');
+        if (errorDesc) {
+          const readable = decodeURIComponent(errorDesc).replace(/\+/g, ' ');
+          console.warn('[AuthManager] Auth URL returned error:', readable);
+          if (typeof showToast === 'function') {
+            showToast('Verification Notice: ' + readable, 'warning');
+          }
+          if (window.history && window.history.replaceState) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+          return;
+        }
+
+        // 2. PKCE Authorization Code Exchange (?code=...)
+        const code = searchParams.get('code');
+        if (code && this.client && typeof this.client.auth.exchangeCodeForSession === 'function') {
+          console.log('[AuthManager] Exchanging authorization code for session...');
+          const { data, error } = await this.client.auth.exchangeCodeForSession(code);
+          if (error) {
+            console.error('[AuthManager] Code exchange error:', error);
+            if (typeof showToast === 'function') {
+              showToast('Verification failed: ' + error.message, 'error');
+            }
+          } else if (data && data.session) {
+            console.log('[AuthManager] Successfully verified via authorization code!');
+            this.currentSession = data.session;
+            this.currentUser = data.session.user;
+            if (typeof showToast === 'function') {
+              showToast('Email verified successfully! Welcome to Angel PG.', 'success');
+            }
+          }
+          if (window.history && window.history.replaceState) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+          return;
+        }
+
+        // 3. Token Hash OTP Verification (?token_hash=...&type=signup|email)
+        const tokenHash = searchParams.get('token_hash');
+        const otpType = searchParams.get('type') || 'signup';
+        if (tokenHash && this.client && typeof this.client.auth.verifyOtp === 'function') {
+          console.log('[AuthManager] Verifying token hash OTP...');
+          const { data, error } = await this.client.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: otpType
+          });
+          if (error) {
+            console.error('[AuthManager] Token hash verification error:', error);
+            if (typeof showToast === 'function') {
+              showToast('Verification failed: ' + error.message, 'error');
+            }
+          } else if (data && data.session) {
+            console.log('[AuthManager] Successfully verified via token hash!');
+            this.currentSession = data.session;
+            this.currentUser = data.session.user;
+            if (typeof showToast === 'function') {
+              showToast('Email verified successfully! Welcome to Angel PG.', 'success');
+            }
+          }
+          if (window.history && window.history.replaceState) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+          return;
+        }
+
+        // 4. Implicit Hash Grant (#access_token=...&refresh_token=...)
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        if (accessToken && refreshToken && this.client) {
+          console.log('[AuthManager] Restoring session from URL hash tokens...');
+          const { data, error } = await this.client.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+          if (!error && data && data.session) {
+            this.currentSession = data.session;
+            this.currentUser = data.session.user;
+            if (typeof showToast === 'function') {
+              showToast('Email verified successfully! Welcome to Angel PG.', 'success');
+            }
+          }
+          if (window.history && window.history.replaceState) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        }
+      } catch (err) {
+        console.warn('[AuthManager] Error processing auth URL:', err);
+      }
+    },
+
+    // ── RESEND VERIFICATION EMAIL ─────────────────────────────
+    async resendVerificationEmail(email) {
+      if (!this.client) throw new Error('Supabase client is not ready');
+      const cleanEmail = (email || '').trim().toLowerCase();
+      if (!cleanEmail) throw new Error('Please enter your email address');
+
+      const { data, error } = await this.client.auth.resend({
+        type: 'signup',
+        email: cleanEmail,
+        options: {
+          emailRedirectTo: PRODUCTION_APP_URL
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      return data;
     },
 
     getUser() {

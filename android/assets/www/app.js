@@ -498,7 +498,11 @@ const App = {
     if (successBanner) successBanner.style.display = 'none';
 
     if (banner && textEl) {
-      textEl.textContent = msg || 'An error occurred during authentication';
+      if (typeof msg === 'string' && msg.includes('<')) {
+        textEl.innerHTML = msg;
+      } else {
+        textEl.textContent = msg || 'An error occurred during authentication';
+      }
       banner.style.display = 'flex';
     }
     try { if (typeof SoundFX !== 'undefined' && SoundFX.error) SoundFX.error(); } catch (e) {}
@@ -556,10 +560,37 @@ const App = {
       let errorMsg = err.message || 'Invalid email or password';
       if (errorMsg.includes('Invalid login credentials')) {
         errorMsg = 'Incorrect email or password. Please try again or create an account.';
+        this.showAuthError(errorMsg);
       } else if (errorMsg.includes('Email not confirmed')) {
-        errorMsg = 'Please verify your email address before signing in.';
+        const targetEmail = (email || '').trim();
+        this.showAuthError(
+          `<span>Your email address is not verified yet. Check your inbox for the link, or click below:</span>` +
+          `<div style="margin-top:8px;"><button type="button" id="btn-resend-verify" style="background:#4f46e5;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;">✉️ Resend Verification Link</button></div>`
+        );
+        const resendBtn = document.getElementById('btn-resend-verify');
+        if (resendBtn) {
+          resendBtn.onclick = async () => {
+            resendBtn.disabled = true;
+            resendBtn.textContent = 'Sending link...';
+            try {
+              await window.AuthManager.resendVerificationEmail(targetEmail);
+              if (typeof showToast === 'function') {
+                showToast('Fresh verification link sent to ' + targetEmail + '! Check inbox.', 'success');
+              }
+              resendBtn.textContent = '✅ Link Sent! Check Email';
+            } catch (rErr) {
+              resendBtn.disabled = false;
+              resendBtn.textContent = 'Retry Resend';
+              if (typeof showToast === 'function') {
+                showToast('Failed to resend: ' + rErr.message, 'error');
+              }
+            }
+          };
+        }
+        return;
+      } else {
+        this.showAuthError(errorMsg);
       }
-      this.showAuthError(errorMsg);
     } finally {
       if (btnText && btnSpinner) {
         btnText.style.display = 'inline';
