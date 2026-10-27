@@ -82,6 +82,9 @@
 
         if (event === 'SIGNED_IN' && session) {
           this.updateUserUI(session.user);
+          if (window.SubscriptionManager && typeof window.SubscriptionManager.init === 'function') {
+            await window.SubscriptionManager.init(session.user);
+          }
           if (window.CloudDB && typeof window.CloudDB.onUserSignedIn === 'function') {
             await window.CloudDB.onUserSignedIn(session.user);
           }
@@ -89,6 +92,9 @@
         } else if (event === 'SIGNED_OUT') {
           this.currentUser = null;
           this.currentSession = null;
+          if (window.SubscriptionManager && typeof window.SubscriptionManager.init === 'function') {
+            window.SubscriptionManager.init(null);
+          }
           this.showAuthScreen();
           if (window.CloudDB && typeof window.CloudDB.onUserSignedOut === 'function') {
             window.CloudDB.onUserSignedOut();
@@ -399,9 +405,23 @@
       if (window.App && typeof window.App.navigate === 'function') {
         window.App.navigate(window.App.currentTab || 'dashboard');
       }
+
+      // Check SaaS Trial and Subscription Lock
+      if (window.SubscriptionManager && typeof window.SubscriptionManager.isLocked === 'function') {
+        if (window.SubscriptionManager.isLocked()) {
+          window.SubscriptionManager.showPaywall();
+        } else {
+          window.SubscriptionManager.removePaywall();
+        }
+      }
     },
 
     showAuthScreen() {
+      // Dismiss any open paywall on auth screen
+      if (window.SubscriptionManager && typeof window.SubscriptionManager.removePaywall === 'function') {
+        window.SubscriptionManager.removePaywall();
+      }
+
       const appEl = document.getElementById('app');
       if (appEl) {
         appEl.style.display = 'none';

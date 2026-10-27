@@ -281,6 +281,9 @@ const App = {
           const user = window.AuthManager.getUser();
           console.log('[App] Restored existing Supabase session for:', user.email);
           window.AuthManager.updateUserUI(user);
+          if (window.SubscriptionManager && typeof window.SubscriptionManager.init === 'function') {
+            await window.SubscriptionManager.init(user);
+          }
           if (window.CloudDB && typeof window.CloudDB.onUserSignedIn === 'function') {
             await window.CloudDB.onUserSignedIn(user);
           }
@@ -548,6 +551,9 @@ const App = {
       if (!window.AuthManager) throw new Error('Authentication manager is not initialized');
       await window.AuthManager.signInWithEmail(email, password);
       const user = window.AuthManager.getUser();
+      if (user && window.SubscriptionManager && typeof window.SubscriptionManager.init === 'function') {
+        await window.SubscriptionManager.init(user);
+      }
       if (user && window.CloudDB && typeof window.CloudDB.onUserSignedIn === 'function') {
         await window.CloudDB.onUserSignedIn(user);
       }
@@ -633,6 +639,9 @@ const App = {
       const data = await window.AuthManager.signUpWithEmail(email, password, name);
       
       if (data.session) {
+        if (window.SubscriptionManager && typeof window.SubscriptionManager.init === 'function') {
+          await window.SubscriptionManager.init(data.session.user);
+        }
         this.showAuthSuccess('Account created! Welcome to Angel PG Cloud.');
         setTimeout(() => {
           this.unlockApp();
@@ -799,6 +808,15 @@ const App = {
     }
     this.navigate('dashboard');
     if (typeof Chatbot !== 'undefined') Chatbot.init();
+
+    // Check SaaS subscription & paywall lock
+    if (window.SubscriptionManager && typeof window.SubscriptionManager.isLocked === 'function') {
+      if (window.SubscriptionManager.isLocked()) {
+        window.SubscriptionManager.showPaywall();
+      } else {
+        window.SubscriptionManager.removePaywall();
+      }
+    }
   },
 
   // ── NAVIGATION ───────────────────────────────────────────

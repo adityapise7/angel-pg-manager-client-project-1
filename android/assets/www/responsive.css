@@ -986,3 +986,25 @@ a:focus-visible {
   outline: 2px solid var(--accent-blue) !important;
   outline-offset: 2px !important;
 }
+
+/* ── 12. SUBSCRIPTION & TRIAL MOBILE ADAPTATIONS ───────────── */
+@media (max-width: 640px) {
+  .trial-countdown-badge {
+    padding: 3px 8px;
+    font-size: 10.5px;
+    max-width: 155px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .paywall-card {
+    padding: 1.5rem 1.25rem;
+  }
+  .paywall-qr-img {
+    width: 150px;
+    height: 150px;
+  }
+  .sub-modal-container {
+    padding: 1rem 0.75rem;
+  }
+}

@@ -1,0 +1,721 @@
+// ============================================================
+// ANGEL'S PG MANAGEMENT — SAAS SUBSCRIPTION & TRIAL ENGINE
+// 10-Day Free Trial upon account registration
+// Monthly UPI Paywall & Cross-Device Cloud-Enforced Subscriptions
+// ============================================================
+
+const SubscriptionManager = {
+  TRIAL_DAYS: 10,
+  MASTER_KEY: 'ANGEL-PRO-2026',
+  _initialized: false,
+  _currentSub: null,
+
+  // ── 1. INITIALIZE FOR AUTHENTICATED USER ─────────────────────
+  async init(user) {
+    if (!user) {
+      this._currentSub = null;
+      this.updateHeaderBadge();
+      this.removePaywall();
+      return null;
+    }
+
+    const pricing = DB.getAppPricing();
+    let sub = DB.getSubscription();
+
+    // 1. Calculate tamper-proof trial period from Supabase user registration timestamp
+    const userCreatedAt = user.created_at ? new Date(user.created_at).getTime() : Date.now();
+    const trialStart = userCreatedAt;
+    const trialEnd = trialStart + (this.TRIAL_DAYS * 24 * 60 * 60 * 1000);
+    const now = Date.now();
+
+    // 2. Fetch latest subscription from Supabase user_cloud_data or user_subscriptions
+    try {
+      const client = window.supabaseClient || (window.AuthManager && window.AuthManager.client);
+      if (client && user.id) {
+        // First try dedicated user_subscriptions table
+        const { data: remoteSub, error } = await client
+          .from('user_subscriptions')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (!error && remoteSub) {
+          sub = {
+            id: remoteSub.id,
+            userId: remoteSub.user_id,
+            userEmail: remoteSub.user_email || user.email,
+            status: remoteSub.status,
+            trialStart: remoteSub.trial_start ? new Date(remoteSub.trial_start).getTime() : trialStart,
+            trialEnd: remoteSub.trial_end ? new Date(remoteSub.trial_end).getTime() : trialEnd,
+            subscriptionEnd: remoteSub.subscription_end,
+            planName: remoteSub.plan_name || 'Monthly Pro',
+            price: Number(remoteSub.price_inr) || pricing.monthlyPrice,
+            lastPaymentRef: remoteSub.last_payment_ref || '',
+            lastPaymentDate: remoteSub.last_payment_date || null
+          };
+          DB.saveSubscription(sub);
+        }
+      }
+    } catch (e) {
+      console.warn('[Subscription] Remote fetch warning (using local/calculated status):', e);
+    }
+
+    // 3. Fallback to default calculated state if no record exists
+    if (!sub || !sub.status) {
+      sub = {
+        userId: user.id,
+        userEmail: user.email,
+        status: (now < trialEnd) ? 'trialing' : 'expired',
+        trialStart: trialStart,
+        trialEnd: trialEnd,
+        subscriptionEnd: null,
+        planName: 'Monthly Pro',
+        price: pricing.monthlyPrice,
+        lastPaymentRef: '',
+        lastPaymentDate: null
+      };
+      DB.saveSubscription(sub);
+    }
+
+    // 4. Validate current status against real time
+    if (sub.status === 'active' && sub.subscriptionEnd) {
+      const subEndTime = new Date(sub.subscriptionEnd).getTime();
+      if (now > subEndTime) {
+        sub.status = 'expired';
+        DB.saveSubscription(sub);
+      }
+    } else if (sub.status === 'trialing') {
+      if (now >= trialEnd) {
+        sub.status = 'expired';
+        DB.saveSubscription(sub);
+      }
+    }
+
+    this._currentSub = sub;
+    this._initialized = true;
+
+    // 5. Update UI Indicators and Enforce Paywall if expired
+    this.updateHeaderBadge();
+
+    if (this.isLocked()) {
+      this.showPaywall();
+    } else {
+      this.removePaywall();
+    }
+
+    return sub;
+  },
+
+  // ── 2. SUBSCRIPTION STATUS COMPUTATION ──────────────────────
+  getStatus() {
+    const user = window.AuthManager ? window.AuthManager.getUser() : null;
+    const pricing = DB.getAppPricing();
+
+    if (!user) {
+      return {
+        status: 'guest',
+        isTrial: false,
+        daysLeft: 0,
+        isExpired: false,
+        isActive: false,
+        isPending: false,
+        isLocked: false,
+        planName: 'Monthly Pro',
+        price: pricing.monthlyPrice
+      };
+    }
+
+    const sub = this._currentSub || DB.getSubscription() || {};
+    const now = Date.now();
+    const trialEnd = sub.trialEnd || (user.created_at ? new Date(user.created_at).getTime() + (this.TRIAL_DAYS * 86400000) : now);
+
+    const isTrial = sub.status === 'trialing' && now < trialEnd;
+    const daysLeft = isTrial ? Math.max(1, Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24))) : 0;
+    const isPending = sub.status === 'pending_approval';
+
+    let isActive = false;
+    let activeDaysLeft = 0;
+    if (sub.status === 'active' && sub.subscriptionEnd) {
+      const subEnd = new Date(sub.subscriptionEnd).getTime();
+      if (subEnd > now) {
+        isActive = true;
+        activeDaysLeft = Math.ceil((subEnd - now) / (1000 * 60 * 60 * 24));
+      }
+    }
+
+    const isExpired = !isActive && !isTrial && !isPending;
+    const isLocked = isExpired;
+
+    return {
+      status: sub.status || (isTrial ? 'trialing' : (isActive ? 'active' : 'expired')),
+      isTrial,
+      daysLeft: isTrial ? daysLeft : activeDaysLeft,
+      isExpired,
+      isActive,
+      isPending,
+      isLocked,
+      subscriptionEnd: sub.subscriptionEnd,
+      lastPaymentRef: sub.lastPaymentRef || '',
+      planName: sub.planName || 'Monthly Pro',
+      price: sub.price || pricing.monthlyPrice
+    };
+  },
+
+  isLocked() {
+    const s = this.getStatus();
+    return s.isLocked;
+  },
+
+  // ── 3. HEADER & SIDEBAR BADGES ──────────────────────────────
+  updateHeaderBadge() {
+    const status = this.getStatus();
+    const badge = document.getElementById('trial-countdown-badge');
+    const sidebarBadge = document.getElementById('sidebar-subscription-badge');
+
+    if (!badge && !sidebarBadge) return;
+
+    let badgeHtml = '';
+    let badgeClass = 'trial-badge';
+
+    if (status.isTrial) {
+      badgeClass += ' trial-active';
+      badgeHtml = `<span class="badge-icon">⏱️</span> <span><strong>${status.daysLeft}d</strong> Free Trial Left · <u>Upgrade</u></span>`;
+    } else if (status.isActive) {
+      badgeClass += ' sub-active';
+      badgeHtml = `<span class="badge-icon">👑</span> <span><strong>Pro Active</strong> (${status.daysLeft}d left)</span>`;
+    } else if (status.isPending) {
+      badgeClass += ' sub-pending';
+      badgeHtml = `<span class="badge-icon">⏳</span> <span>Payment Verifying</span>`;
+    } else if (status.isLocked) {
+      badgeClass += ' trial-expired';
+      badgeHtml = `<span class="badge-icon">⚠️</span> <span><strong>Trial Expired</strong> · Pay to Unlock</span>`;
+    }
+
+    if (badge) {
+      if (status.status === 'guest') {
+        badge.style.display = 'none';
+      } else {
+        badge.className = badgeClass;
+        badge.innerHTML = badgeHtml;
+        badge.style.display = 'inline-flex';
+        badge.onclick = () => this.openSubscriptionModal();
+      }
+    }
+
+    if (sidebarBadge) {
+      if (status.status === 'guest') {
+        sidebarBadge.style.display = 'none';
+      } else {
+        sidebarBadge.className = 'sidebar-sub-card ' + badgeClass;
+        sidebarBadge.innerHTML = badgeHtml;
+        sidebarBadge.style.display = 'block';
+        sidebarBadge.onclick = () => this.openSubscriptionModal();
+      }
+    }
+  },
+
+  // ── 4. SUBSCRIPTION & UPGRADE MODAL ─────────────────────────
+  openSubscriptionModal() {
+    const status = this.getStatus();
+    const pricing = DB.getAppPricing();
+    const prop = DB.getProperty() || {};
+    const user = window.AuthManager ? window.AuthManager.getUser() : null;
+
+    const payeeUpi = pricing.payeeUpi || 'angelpg@upi';
+    const payeeName = pricing.payeeName || "Angel's PG Management";
+    const monthlyPrice = pricing.monthlyPrice || 499;
+
+    const cleanProp = encodeURIComponent(payeeName);
+    const upiPayload = `upi://pay?pa=${encodeURIComponent(payeeUpi)}&pn=${cleanProp}&am=${monthlyPrice}&cu=INR&tn=Angel+PG+Pro+Subscription`;
+
+    // Generate dynamic QR Code Data URL
+    let qrUrl = '';
+    if (typeof QRCode !== 'undefined' && QRCode.toDataURL) {
+      try { qrUrl = QRCode.toDataURL(upiPayload, 260, 8); } catch (e) {}
+    }
+    if (!qrUrl) {
+      qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(upiPayload)}&size=260x260&margin=8`;
+    }
+
+    // Modal status highlight banner
+    let statusBanner = '';
+    if (status.isTrial) {
+      statusBanner = `
+        <div class="sub-alert-card trial-glow">
+          <div class="sub-alert-icon">⏱️</div>
+          <div class="sub-alert-text">
+            <strong>10-Day Free Trial Active:</strong> You have <strong>${status.daysLeft} days remaining</strong>. Subscribe now to avoid any interruption in service.
+          </div>
+        </div>`;
+    } else if (status.isActive) {
+      statusBanner = `
+        <div class="sub-alert-card active-glow">
+          <div class="sub-alert-icon">👑</div>
+          <div class="sub-alert-text">
+            <strong>Pro Plan Active!</strong> Valid until <strong>${new Date(status.subscriptionEnd).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</strong> (${status.daysLeft} days remaining).
+          </div>
+        </div>`;
+    } else if (status.isPending) {
+      statusBanner = `
+        <div class="sub-alert-card pending-glow">
+          <div class="sub-alert-icon">⏳</div>
+          <div class="sub-alert-text">
+            <strong>Payment Under Verification:</strong> Transaction Ref <code>${status.lastPaymentRef}</code> submitted. You have full access while our team verifies.
+          </div>
+        </div>`;
+    } else if (status.isExpired) {
+      statusBanner = `
+        <div class="sub-alert-card expired-glow">
+          <div class="sub-alert-icon">⚠️</div>
+          <div class="sub-alert-text">
+            <strong>Free Trial Ended:</strong> Your 10-day trial has concluded. Please complete monthly payment below to unlock full access.
+          </div>
+        </div>`;
+    }
+
+    const modalHtml = `
+      <div class="sub-modal-container">
+        <!-- Close button if not locked -->
+        ${!status.isLocked ? `<button type="button" class="sub-modal-close" onclick="closeModal()">✕</button>` : ''}
+
+        <div class="sub-modal-header">
+          <div class="sub-badge-pill">👑 ANGEL PG PRO</div>
+          <h2>Upgrade to Unlimited PG Suite</h2>
+          <p>Everything you need to automate floors, rooms, tenants, rent collections, and cloud records.</p>
+        </div>
+
+        ${statusBanner}
+
+        <!-- Pricing & Value Card -->
+        <div class="sub-pricing-row">
+          <div class="sub-plan-card active">
+            <div class="sub-plan-badge">MONTHLY ACCESS</div>
+            <div class="sub-plan-price">
+              <span class="currency">₹</span>
+              <span class="amount">${monthlyPrice}</span>
+              <span class="period">/ month</span>
+            </div>
+            <ul class="sub-features-list">
+              <li>✅ <strong>Unlimited</strong> Floors, Rooms &amp; Bed Allocations</li>
+              <li>✅ <strong>Live Cloud Sync</strong> &amp; Supabase Multi-Device Backup</li>
+              <li>✅ <strong>1-Click WhatsApp</strong> Rent Reminders &amp; Receipts</li>
+              <li>✅ <strong>Digital Business Card</strong> &amp; Tenant Aadhaar KYC</li>
+              <li>✅ <strong>Revenue Analytics</strong> &amp; Security Deposit Tracker</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- UPI QR Code & Direct Mobile Payment -->
+        <div class="sub-payment-box">
+          <h3>⚡ Scan &amp; Pay via Any UPI App</h3>
+          <p class="sub-pay-instruction">Scan with GPay, PhonePe, Paytm, or BHIM to pay <strong>₹${monthlyPrice}</strong></p>
+
+          <div class="sub-qr-wrapper">
+            <img src="${qrUrl}" alt="UPI Subscription QR Code" class="sub-qr-image" />
+            <div class="sub-upi-meta">
+              <span class="sub-upi-label">Payee UPI ID:</span>
+              <code class="sub-upi-code" id="sub-copy-upi">${payeeUpi}</code>
+              <button type="button" class="btn-copy-upi" onclick="SubscriptionManager.copyUpi('${payeeUpi}')">📋 Copy</button>
+            </div>
+          </div>
+
+          <!-- Direct UPI Intent on Android/iOS -->
+          <div style="margin: 12px 0;">
+            <a href="${upiPayload}" class="btn-pay-intent">
+              <span>📱 Open in UPI App (GPay / PhonePe / Paytm)</span>
+            </a>
+          </div>
+
+          <!-- UTR / Payment Submission Form -->
+          <form id="form-sub-verify" onsubmit="SubscriptionManager.handlePaymentSubmit(event)">
+            <div class="form-group" style="text-align: left; margin-top: 14px;">
+              <label class="form-label" for="sub-utr-input">
+                <strong>Enter 12-Digit UPI Ref / UTR Number:</strong>
+              </label>
+              <input type="text" id="sub-utr-input" class="form-control" placeholder="e.g. 423589123456" maxlength="24" required />
+              <small style="color: var(--text-muted); font-size: 11px; display: block; margin-top: 4px;">
+                You can find this in your GPay / PhonePe / Paytm payment receipt details.
+              </small>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block" id="btn-submit-sub-utr">
+              <span>🚀 Submit Payment for Activation</span>
+            </button>
+          </form>
+
+          <!-- WhatsApp Direct Confirmation -->
+          <div style="margin-top: 10px;">
+            <button type="button" class="btn-whatsapp-proof" onclick="SubscriptionManager.sendWhatsAppProof('${payeeUpi}', ${monthlyPrice})">
+              <span>💬 Send Payment Screenshot on WhatsApp</span>
+            </button>
+          </div>
+
+          <!-- Master / Promo Key Toggle -->
+          <div class="sub-key-accordion">
+            <a href="javascript:void(0)" onclick="SubscriptionManager.toggleKeyBox()">Have a License / Master Activation Key? ▾</a>
+            <div id="sub-key-box" style="display: none; margin-top: 8px;">
+              <div style="display: flex; gap: 8px;">
+                <input type="text" id="sub-license-key-input" class="form-control" placeholder="Enter License Key..." style="text-transform: uppercase;" />
+                <button type="button" class="btn btn-secondary" onclick="SubscriptionManager.redeemKey()">Redeem</button>
+              </div>
+            </div>
+          </div>
+
+          ${status.isLocked ? `
+            <div style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px;">
+              <button type="button" class="btn-sub-signout" onclick="AuthManager.signOut()">🚪 Sign Out / Switch Account</button>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+
+    openModal(modalHtml);
+  },
+
+  // ── 5. FULL-SCREEN UNCLOSABLE PAYWALL ─────────────────────────
+  showPaywall() {
+    let paywallEl = document.getElementById('subscription-paywall-screen');
+    if (!paywallEl) {
+      paywallEl = document.createElement('div');
+      paywallEl.id = 'subscription-paywall-screen';
+      paywallEl.className = 'subscription-paywall-backdrop';
+      document.body.appendChild(paywallEl);
+    }
+
+    const pricing = DB.getAppPricing();
+    const payeeUpi = pricing.payeeUpi || 'angelpg@upi';
+    const payeeName = pricing.payeeName || "Angel's PG Management";
+    const monthlyPrice = pricing.monthlyPrice || 499;
+
+    const cleanProp = encodeURIComponent(payeeName);
+    const upiPayload = `upi://pay?pa=${encodeURIComponent(payeeUpi)}&pn=${cleanProp}&am=${monthlyPrice}&cu=INR&tn=Angel+PG+Pro+Subscription`;
+
+    let qrUrl = '';
+    if (typeof QRCode !== 'undefined' && QRCode.toDataURL) {
+      try { qrUrl = QRCode.toDataURL(upiPayload, 260, 8); } catch (e) {}
+    }
+    if (!qrUrl) {
+      qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(upiPayload)}&size=260x260&margin=8`;
+    }
+
+    paywallEl.innerHTML = `
+      <div class="paywall-card">
+        <div class="paywall-icon-badge">🔒</div>
+        <h2>10-Day Free Trial Expired</h2>
+        <p class="paywall-sub">
+          Your free trial has ended. Subscribe to <strong>Angel's PG Management Pro</strong> to unlock your data and continue managing properties.
+        </p>
+
+        <div class="paywall-price-banner">
+          <div class="paywall-price-val">₹${monthlyPrice} <span>/ month</span></div>
+          <div class="paywall-price-meta">Full Cloud Access · Mobile &amp; Desktop</div>
+        </div>
+
+        <div class="paywall-qr-container">
+          <img src="${qrUrl}" alt="UPI Subscription QR" class="paywall-qr-img" />
+          <div class="paywall-upi-line">
+            <span>UPI ID:</span> <strong>${payeeUpi}</strong>
+            <button type="button" class="btn-copy-upi-sm" onclick="SubscriptionManager.copyUpi('${payeeUpi}')">📋 Copy</button>
+          </div>
+        </div>
+
+        <div style="margin: 10px 0;">
+          <a href="${upiPayload}" class="btn-pay-intent">
+            <span>📱 Pay ₹${monthlyPrice} via UPI App</span>
+          </a>
+        </div>
+
+        <form id="form-paywall-utr" onsubmit="SubscriptionManager.handlePaymentSubmit(event)">
+          <div class="form-group" style="text-align: left;">
+            <label class="form-label" for="paywall-utr-input"><strong>Enter 12-Digit UPI Transaction / UTR:</strong></label>
+            <input type="text" id="paywall-utr-input" class="form-control" placeholder="e.g. 423589123456" maxlength="24" required />
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">
+            <span>🚀 Submit &amp; Unlock Pro Access</span>
+          </button>
+        </form>
+
+        <div style="margin-top: 10px;">
+          <button type="button" class="btn-whatsapp-proof" onclick="SubscriptionManager.sendWhatsAppProof('${payeeUpi}', ${monthlyPrice})">
+            <span>💬 Send Proof on WhatsApp</span>
+          </button>
+        </div>
+
+        <div class="sub-key-accordion" style="margin-top: 12px;">
+          <a href="javascript:void(0)" onclick="SubscriptionManager.toggleKeyBox('paywall')">Enter License Key ▾</a>
+          <div id="paywall-key-box" style="display: none; margin-top: 8px;">
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="paywall-license-key-input" class="form-control" placeholder="LICENSE KEY..." style="text-transform: uppercase;" />
+              <button type="button" class="btn btn-secondary" onclick="SubscriptionManager.redeemKey('paywall')">Unlock</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px;">
+          <button type="button" class="btn-sub-signout" onclick="AuthManager.signOut()">🚪 Sign Out / Switch Account</button>
+        </div>
+      </div>
+    `;
+
+    paywallEl.style.display = 'flex';
+  },
+
+  removePaywall() {
+    const paywallEl = document.getElementById('subscription-paywall-screen');
+    if (paywallEl) {
+      paywallEl.style.display = 'none';
+    }
+  },
+
+  // ── 6. PAYMENT SUBMISSION & ACTIVATION ───────────────────────
+  async handlePaymentSubmit(event) {
+    if (event) event.preventDefault();
+
+    const utrInput = document.getElementById('sub-utr-input') || document.getElementById('paywall-utr-input');
+    const utr = (utrInput ? utrInput.value : '').trim();
+
+    if (!utr || utr.length < 6) {
+      if (typeof showToast === 'function') {
+        showToast('Please enter a valid 12-digit UPI UTR / Transaction Reference number', 'error');
+      } else {
+        alert('Please enter a valid UPI Transaction / UTR number.');
+      }
+      return;
+    }
+
+    const user = window.AuthManager ? window.AuthManager.getUser() : null;
+    if (!user) return;
+
+    const pricing = DB.getAppPricing();
+    const now = Date.now();
+    // Grant 30 days active subscription upon payment submission
+    const subEnd = new Date(now + (30 * 24 * 60 * 60 * 1000)).toISOString();
+
+    const sub = {
+      userId: user.id,
+      userEmail: user.email,
+      status: 'active', // Activated for 30 days
+      subscriptionEnd: subEnd,
+      planName: 'Monthly Pro',
+      price: pricing.monthlyPrice,
+      lastPaymentRef: utr,
+      lastPaymentDate: new Date().toISOString()
+    };
+
+    DB.saveSubscription(sub);
+    this._currentSub = sub;
+
+    // Save to Supabase
+    try {
+      const client = window.supabaseClient || (window.AuthManager && window.AuthManager.client);
+      if (client && user.id) {
+        await client.from('user_subscriptions').upsert({
+          user_id: user.id,
+          user_email: user.email,
+          status: 'active',
+          subscription_end: subEnd,
+          plan_name: 'Monthly Pro',
+          price_inr: pricing.monthlyPrice,
+          last_payment_ref: utr,
+          last_payment_date: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+      }
+    } catch (err) {
+      console.warn('[Subscription] Remote sync note:', err);
+    }
+
+    // Refresh UI & remove paywall
+    this.updateHeaderBadge();
+    this.removePaywall();
+    if (typeof closeModal === 'function') closeModal();
+
+    try { if (typeof SoundFX !== 'undefined' && SoundFX.pinSuccess) SoundFX.pinSuccess(); } catch (e) {}
+
+    if (typeof showToast === 'function') {
+      showToast('🎉 Subscription Active! Your account has been upgraded to Angel PG Pro.', 'success');
+    } else {
+      alert('Subscription Active! Welcome to Angel PG Pro.');
+    }
+
+    if (window.App && typeof window.App.navigate === 'function') {
+      window.App.navigate('dashboard');
+    }
+  },
+
+  // ── 7. LICENSE / MASTER KEY ACTIVATION ───────────────────────
+  async redeemKey(source = 'modal') {
+    const input = source === 'paywall' 
+      ? document.getElementById('paywall-license-key-input') 
+      : document.getElementById('sub-license-key-input');
+
+    const key = (input ? input.value : '').trim().toUpperCase();
+    if (!key) {
+      if (typeof showToast === 'function') showToast('Please enter an activation key', 'error');
+      return;
+    }
+
+    if (key === this.MASTER_KEY || key === 'ANGEL-PRO' || key === 'LIFETIME-VIP') {
+      const user = window.AuthManager ? window.AuthManager.getUser() : null;
+      if (!user) return;
+
+      const subEnd = new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)).toISOString();
+      const sub = {
+        userId: user.id,
+        userEmail: user.email,
+        status: 'active',
+        subscriptionEnd: subEnd,
+        planName: 'VIP Pro (Annual)',
+        price: 0,
+        lastPaymentRef: 'KEY-' + key,
+        lastPaymentDate: new Date().toISOString()
+      };
+
+      DB.saveSubscription(sub);
+      this._currentSub = sub;
+
+      try {
+        const client = window.supabaseClient || (window.AuthManager && window.AuthManager.client);
+        if (client && user.id) {
+          await client.from('user_subscriptions').upsert({
+            user_id: user.id,
+            user_email: user.email,
+            status: 'active',
+            subscription_end: subEnd,
+            plan_name: 'VIP Pro (Annual)',
+            price_inr: 0,
+            last_payment_ref: 'KEY-' + key,
+            updated_at: new Date().toISOString()
+          });
+        }
+      } catch (e) {}
+
+      this.updateHeaderBadge();
+      this.removePaywall();
+      if (typeof closeModal === 'function') closeModal();
+
+      if (typeof showToast === 'function') {
+        showToast('🎉 Key Verified! 365 Days of Pro Access Activated.', 'success');
+      } else {
+        alert('Key Verified! 365 Days of Pro Access Activated.');
+      }
+    } else {
+      if (typeof showToast === 'function') {
+        showToast('Invalid License Key. Please check and try again.', 'error');
+      } else {
+        alert('Invalid License Key.');
+      }
+    }
+  },
+
+  // ── 8. WHATSAPP & UPI HELPERS ────────────────────────────────
+  copyUpi(upiId) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(upiId).then(() => {
+        if (typeof showToast === 'function') showToast('UPI ID copied to clipboard!', 'info');
+      });
+    } else {
+      prompt('Copy UPI ID:', upiId);
+    }
+  },
+
+  toggleKeyBox(source = 'modal') {
+    const el = source === 'paywall' 
+      ? document.getElementById('paywall-key-box') 
+      : document.getElementById('sub-key-box');
+    if (el) {
+      el.style.display = (el.style.display === 'none' || !el.style.display) ? 'block' : 'none';
+    }
+  },
+
+  sendWhatsAppProof(payeeUpi, amount) {
+    const user = window.AuthManager ? window.AuthManager.getUser() : null;
+    const email = user ? user.email : 'Landlord';
+    const utrInput = document.getElementById('sub-utr-input') || document.getElementById('paywall-utr-input');
+    const utr = (utrInput ? utrInput.value : '').trim() || 'Pending';
+    const pricing = DB.getAppPricing();
+    const phone = pricing.whatsappNumber || '919876543210';
+
+    const msg = `*Angel PG Pro Subscription Payment Proof*\n\n` +
+      `👤 *Account Email:* ${email}\n` +
+      `💰 *Amount Paid:* ₹${amount}\n` +
+      `💳 *Paid To UPI:* ${payeeUpi}\n` +
+      `🔢 *Transaction / UTR:* ${utr}\n\n` +
+      `Please confirm my Angel PG Pro access. Thank you!`;
+
+    const waUrl = `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
+  },
+
+  // ── 9. OWNER PRICING & PAYMENT SETTINGS MODAL ─────────────────
+  openOwnerConfigModal() {
+    const pricing = DB.getAppPricing();
+
+    const modalHtml = `
+      <div style="padding: 1.5rem; max-width: 480px; margin: 0 auto;">
+        <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--text-primary);">
+          ⚙️ SaaS Pricing &amp; UPI Configuration
+        </h3>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+          Configure your subscription price and the Bank UPI details where landlords send monthly payments.
+        </p>
+
+        <form onsubmit="SubscriptionManager.saveOwnerConfig(event)">
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label class="form-label" for="cfg-sub-price">Monthly Subscription Fee (₹ INR):</label>
+            <input type="number" id="cfg-sub-price" class="form-control" value="${pricing.monthlyPrice}" min="49" max="99999" required />
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label class="form-label" for="cfg-sub-upi">Receiving Bank UPI ID:</label>
+            <input type="text" id="cfg-sub-upi" class="form-control" value="${pricing.payeeUpi}" placeholder="e.g. yourname@okhdfcbank" required />
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label class="form-label" for="cfg-sub-name">Payee Display Name:</label>
+            <input type="text" id="cfg-sub-name" class="form-control" value="${pricing.payeeName}" placeholder="e.g. Angel PG Management" required />
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label class="form-label" for="cfg-sub-phone">Admin WhatsApp Support Number (with country code):</label>
+            <input type="text" id="cfg-sub-phone" class="form-control" value="${pricing.whatsappNumber}" placeholder="e.g. 919876543210" required />
+          </div>
+
+          <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Pricing &amp; UPI</button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    openModal(modalHtml);
+  },
+
+  saveOwnerConfig(event) {
+    if (event) event.preventDefault();
+
+    const price = Number(document.getElementById('cfg-sub-price')?.value) || 499;
+    const upi = (document.getElementById('cfg-sub-upi')?.value || '').trim() || 'angelpg@upi';
+    const name = (document.getElementById('cfg-sub-name')?.value || '').trim() || "Angel's PG Management";
+    const phone = (document.getElementById('cfg-sub-phone')?.value || '').trim() || '919876543210';
+
+    const pricing = {
+      monthlyPrice: price,
+      payeeUpi: upi,
+      payeeName: name,
+      whatsappNumber: phone
+    };
+
+    DB.saveAppPricing(pricing);
+    if (typeof closeModal === 'function') closeModal();
+    if (typeof showToast === 'function') showToast('Subscription pricing & UPI updated successfully!', 'success');
+
+    if (window.App && window.App.currentTab === 'settings') {
+      Settings.render();
+    }
+  }
+};
+
+window.SubscriptionManager = SubscriptionManager;

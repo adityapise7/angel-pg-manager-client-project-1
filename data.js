@@ -225,6 +225,8 @@ const DB = {
     AGREEMENT_POLICY: 'angels_agreement_policy',
     OWNER_SIGNATURE: 'angels_owner_signature',
     BUSINESS_CARD: 'angels_business_card_custom',
+    SUBSCRIPTION:  'angels_subscription',
+    APP_PRICING:   'angels_app_pricing',
   },
 
   // ── GENERIC ─────────────────────────────────────────────
@@ -665,6 +667,25 @@ const DB = {
   saveBusinessCardCustom(customData) {
     if (customData) this._set(this.KEYS.BUSINESS_CARD, customData);
     else localStorage.removeItem(this.KEYS.BUSINESS_CARD);
+  },
+
+  // ── SAAS SUBSCRIPTION & TRIAL ──────────────────────────────
+  getSubscription() {
+    return this._get(this.KEYS.SUBSCRIPTION) || null;
+  },
+  saveSubscription(sub) {
+    this._set(this.KEYS.SUBSCRIPTION, sub);
+  },
+  getAppPricing() {
+    return this._get(this.KEYS.APP_PRICING) || {
+      monthlyPrice: 499,
+      payeeUpi: 'angelpg@upi',
+      payeeName: "Angel's PG Management",
+      whatsappNumber: '919876543210'
+    };
+  },
+  saveAppPricing(pricing) {
+    this._set(this.KEYS.APP_PRICING, pricing);
   },
 
   // ── EXPORT / IMPORT (UNIVERSAL V3.0 SCHEMA) ────────────────

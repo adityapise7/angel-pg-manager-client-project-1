@@ -182,6 +182,56 @@ const Settings = {
           </div>
         </div>
 
+        <!-- SaaS Subscription & Billing -->
+        <div class="settings-section">
+          <div class="settings-label">👑 Subscription &amp; SaaS Billing</div>
+          <div class="settings-item" onclick="SubscriptionManager.openSubscriptionModal()">
+            <div class="settings-item-icon" style="background:var(--accent-purple-light)">👑</div>
+            <div class="settings-item-info">
+              <div class="settings-item-title">Current Plan: ${(() => {
+                const s = window.SubscriptionManager ? window.SubscriptionManager.getStatus() : {};
+                if (s.isTrial) return `Free Trial (${s.daysLeft}d left)`;
+                if (s.isActive) return `Pro Active (${s.daysLeft}d left)`;
+                if (s.isPending) return `Verification Pending`;
+                return `Trial Expired (Locked)`;
+              })()}</div>
+              <div class="settings-item-sub">Monthly fee: ₹${(() => {
+                const p = DB.getAppPricing();
+                return p.monthlyPrice || 499;
+              })()}/mo · Tap to view details or pay via UPI</div>
+            </div>
+            <span class="badge ${(() => {
+              const s = window.SubscriptionManager ? window.SubscriptionManager.getStatus() : {};
+              if (s.isActive) return 'green';
+              if (s.isTrial) return '';
+              return 'red';
+            })()}" style="font-size:11px;font-weight:700">
+              ${(() => {
+                const s = window.SubscriptionManager ? window.SubscriptionManager.getStatus() : {};
+                if (s.isActive) return '👑 Active';
+                if (s.isTrial) return '⏱️ Trial';
+                return '🔒 Expired';
+              })()}
+            </span>
+          </div>
+          <div class="settings-item" onclick="SubscriptionManager.openSubscriptionModal()">
+            <div class="settings-item-icon" style="background:var(--accent-green-light)">⚡</div>
+            <div class="settings-item-info">
+              <div class="settings-item-title">Pay / Renew Monthly Subscription</div>
+              <div class="settings-item-sub">Scan UPI QR code &amp; submit UTR reference</div>
+            </div>
+            <span class="settings-item-value">›</span>
+          </div>
+          <div class="settings-item" onclick="SubscriptionManager.openOwnerConfigModal()">
+            <div class="settings-item-icon" style="background:var(--accent-blue-light)">⚙️</div>
+            <div class="settings-item-info">
+              <div class="settings-item-title">App Owner: Pricing &amp; UPI Setup</div>
+              <div class="settings-item-sub">Change monthly price, receiving UPI ID, and admin WhatsApp</div>
+            </div>
+            <span class="settings-item-value">›</span>
+          </div>
+        </div>
+
         <!-- Supabase Cloud Account & Synchronization -->
         <div class="settings-section">
           <div class="settings-label">☁️ Cloud Account &amp; Synchronization</div>
