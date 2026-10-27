@@ -343,51 +343,81 @@ body {
   top: 0 !important;
   left: 0 !important;
   right: 0 !important;
-  max-width: 100% !important;
+  max-width: 100vw !important;
   width: 100% !important;
-  height: var(--header-height-mobile) !important;
+  height: var(--header-height-mobile, 54px) !important;
   background: var(--bg-nav) !important;
   backdrop-filter: blur(16px) !important;
   -webkit-backdrop-filter: blur(16px) !important;
   border-bottom: 1px solid var(--border) !important;
   z-index: 120 !important;
-  padding: 0 16px !important;
+  padding: 0 14px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
   box-sizing: border-box !important;
+  overflow: hidden !important;
+  gap: 8px !important;
 }
 
 .header-title {
-  font-size: 16.5px !important;
+  font-size: 16px !important;
   font-weight: 800 !important;
   letter-spacing: -0.3px !important;
   display: flex !important;
   align-items: center !important;
-  gap: 8px !important;
+  gap: 6px !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  margin-right: 4px !important;
 }
 
-/* Header Action Buttons */
+/* Header Action Buttons Group */
 .header-actions-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  flex-shrink: 0 !important;
+  gap: 6px !important;
+  max-width: fit-content !important;
 }
 
 .header-action {
-  width: 40px !important;
-  height: 40px !important;
-  border-radius: var(--radius-md) !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  aspect-ratio: 1 / 1 !important;
+  border-radius: 50% !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  font-size: 18px !important;
+  font-size: 16px !important;
+  flex-shrink: 0 !important;
+  padding: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-sizing: border-box !important;
   transition: all 0.2s ease !important;
 }
 
 .header-action:hover {
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
+}
+
+.trial-countdown-badge {
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+  user-select: none !important;
+}
+
+.cloud-sync-badge {
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+  user-select: none !important;
 }
 
 /* Main Tab Area */
@@ -987,24 +1017,133 @@ a:focus-visible {
   outline-offset: 2px !important;
 }
 
-/* ── 12. SUBSCRIPTION & TRIAL MOBILE ADAPTATIONS ───────────── */
-@media (max-width: 640px) {
+/* ── 12. SUBSCRIPTION & TOP BAR MOBILE/TABLET ADAPTATIONS ──── */
+
+/* Tablet (601px – 768px) */
+@media (min-width: 601px) and (max-width: 768px) {
+  .app-header {
+    height: 56px !important;
+    padding: 0 16px !important;
+    gap: 10px !important;
+  }
+  .header-title {
+    font-size: 16.5px !important;
+    max-width: 220px !important;
+  }
+  .header-actions-group {
+    gap: 7px !important;
+  }
+  .header-action {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    font-size: 16px !important;
+  }
   .trial-countdown-badge {
-    padding: 3px 8px;
-    font-size: 10.5px;
-    max-width: 155px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    padding: 4px 10px !important;
+    font-size: 11px !important;
+  }
+  .cloud-sync-badge {
+    padding: 4px 10px !important;
+    font-size: 11.5px !important;
+  }
+}
+
+/* Standard Mobile (401px – 600px) */
+@media (max-width: 600px) {
+  .app-header {
+    height: 52px !important;
+    padding: 0 10px !important;
+    gap: 6px !important;
+  }
+  .header-title {
+    font-size: 15px !important;
+    max-width: 120px !important;
+  }
+  .header-actions-group {
+    gap: 5px !important;
+  }
+  .header-action {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    font-size: 14.5px !important;
+  }
+  .cloud-sync-badge {
+    padding: 4px 7px !important;
+    font-size: 12px !important;
+    min-width: 28px !important;
+    height: 28px !important;
+    box-sizing: border-box !important;
+    border-radius: 14px !important;
+    justify-content: center !important;
+  }
+  .cloud-sync-badge .sync-text {
+    display: none !important;
+  }
+  .trial-countdown-badge {
+    padding: 3px 8px !important;
+    font-size: 10.5px !important;
+    border-radius: 12px !important;
+    max-width: 120px !important;
+  }
+  .trial-countdown-badge .badge-full-text {
+    display: none !important;
   }
   .paywall-card {
-    padding: 1.5rem 1.25rem;
+    padding: 1.5rem 1.25rem !important;
   }
   .paywall-qr-img {
-    width: 150px;
-    height: 150px;
+    width: 150px !important;
+    height: 150px !important;
   }
   .sub-modal-container {
-    padding: 1rem 0.75rem;
+    padding: 1rem 0.75rem !important;
+  }
+}
+
+/* Small Mobile (<= 400px - iPhone SE, Galaxy A, 360px phones) */
+@media (max-width: 400px) {
+  .app-header {
+    height: 48px !important;
+    padding: 0 8px !important;
+    gap: 4px !important;
+  }
+  .header-title {
+    font-size: 13.5px !important;
+    max-width: 85px !important;
+    gap: 4px !important;
+  }
+  .header-actions-group {
+    gap: 3.5px !important;
+  }
+  .header-action {
+    width: 29px !important;
+    height: 29px !important;
+    min-width: 29px !important;
+    min-height: 29px !important;
+    font-size: 13px !important;
+  }
+  .cloud-sync-badge {
+    padding: 2px 5px !important;
+    font-size: 11px !important;
+    width: 26px !important;
+    height: 26px !important;
+    min-width: 26px !important;
+    border-radius: 50% !important;
+  }
+  .cloud-sync-badge .sync-text {
+    display: none !important;
+  }
+  .trial-countdown-badge {
+    padding: 2px 6px !important;
+    font-size: 10px !important;
+    border-radius: 10px !important;
+    max-width: 78px !important;
+  }
+  .trial-countdown-badge .badge-full-text {
+    display: none !important;
   }
 }

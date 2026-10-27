@@ -179,16 +179,16 @@ const SubscriptionManager = {
 
     if (status.isTrial) {
       badgeClass += ' trial-active';
-      badgeHtml = `<span class="badge-icon">⏱️</span> <span><strong>${status.daysLeft}d</strong> Free Trial Left · <u style="cursor:pointer;" onclick="SubscriptionManager.openSubscriptionModal(); event.stopPropagation();">Upgrade</u></span>`;
+      badgeHtml = `<span class="badge-icon">⏱️</span> <span><strong>${status.daysLeft}d</strong> <span class="badge-full-text">Free Trial </span><u style="cursor:pointer;" onclick="SubscriptionManager.openSubscriptionModal(); event.stopPropagation();">Upgrade</u></span>`;
     } else if (status.isActive) {
       badgeClass += ' sub-active';
-      badgeHtml = `<span class="badge-icon">👑</span> <span><strong>Pro Active</strong> (${status.daysLeft}d left)</span>`;
+      badgeHtml = `<span class="badge-icon">👑</span> <span><strong>Pro</strong><span class="badge-full-text"> Active</span> (${status.daysLeft}d)</span>`;
     } else if (status.isPending) {
       badgeClass += ' sub-pending';
-      badgeHtml = `<span class="badge-icon">⏳</span> <span>Payment Verifying</span>`;
+      badgeHtml = `<span class="badge-icon">⏳</span> <span><span class="badge-full-text">Payment </span>Verifying</span>`;
     } else if (status.isLocked) {
       badgeClass += ' trial-expired';
-      badgeHtml = `<span class="badge-icon">⚠️</span> <span><strong>Trial Expired</strong> · <u style="cursor:pointer;" onclick="SubscriptionManager.openSubscriptionModal(); event.stopPropagation();">Pay to Unlock</u></span>`;
+      badgeHtml = `<span class="badge-icon">⚠️</span> <span><strong>Expired</strong> · <u style="cursor:pointer;" onclick="SubscriptionManager.openSubscriptionModal(); event.stopPropagation();">Unlock</u></span>`;
     }
 
     if (badge) {
