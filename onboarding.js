@@ -107,6 +107,11 @@
         }
       }
 
+      // Officially start 10-day free trial as soon as PG details are asked
+      if (window.SubscriptionManager && typeof window.SubscriptionManager.startTrialWhenPGDetailsAsked === 'function') {
+        window.SubscriptionManager.startTrialWhenPGDetailsAsked(user);
+      }
+
       // Remove any existing onboarding overlay
       const existing = document.getElementById('rentora-onboarding-overlay');
       if (existing) existing.remove();
@@ -867,6 +872,9 @@
 
         // 4. Synchronize with Supabase Cloud
         const user = window.AuthManager ? window.AuthManager.getUser() : null;
+        if (user && window.SubscriptionManager && typeof window.SubscriptionManager.startTrialWhenPGDetailsAsked === 'function') {
+          await window.SubscriptionManager.startTrialWhenPGDetailsAsked(user);
+        }
         if (user && window.CloudDB && typeof window.CloudDB.syncKeyToCloud === 'function') {
           await window.CloudDB.syncKeyToCloud(DB.KEYS.PROPERTY, prop, user.id);
           await window.CloudDB.syncKeyToCloud(DB.KEYS.WA_CONFIG, waCfg, user.id);

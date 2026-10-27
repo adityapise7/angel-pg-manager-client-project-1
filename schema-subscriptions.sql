@@ -1,5 +1,5 @@
 -- ============================================================
--- ANGEL'S PG MANAGEMENT — SAAS SUBSCRIPTIONS & LICENSES SCHEMA
+-- RENTORA — SAAS SUBSCRIPTIONS, 10-DAY TRIAL & LICENSES SCHEMA
 -- Run this in your Supabase SQL Editor: https://supabase.com/dashboard/project/epgipizdldvrevihxyqf/sql
 -- ============================================================
 
@@ -7,7 +7,9 @@
 CREATE TABLE IF NOT EXISTS public.user_subscriptions (
     user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     user_email TEXT,
-    status TEXT NOT NULL DEFAULT 'trial', -- 'trial', 'active', 'expired', 'pending'
+    status TEXT NOT NULL DEFAULT 'trialing', -- 'trialing', 'active', 'expired', 'pending_approval'
+    trial_start TIMESTAMPTZ,
+    trial_end TIMESTAMPTZ,
     subscription_end TIMESTAMPTZ,
     plan_name TEXT DEFAULT 'Monthly Pro',
     price_inr NUMERIC DEFAULT 1500,
@@ -16,6 +18,11 @@ CREATE TABLE IF NOT EXISTS public.user_subscriptions (
     created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Ensure dynamic trial columns exist if table was already created
+ALTER TABLE public.user_subscriptions 
+    ADD COLUMN IF NOT EXISTS trial_start TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS trial_end TIMESTAMPTZ;
 
 -- 2. Enable Row-Level Security (RLS)
 ALTER TABLE public.user_subscriptions ENABLE ROW LEVEL SECURITY;

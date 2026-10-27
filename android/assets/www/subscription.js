@@ -21,18 +21,12 @@ const SubscriptionManager = {
 
     const pricing = DB.getAppPricing();
     let sub = DB.getSubscription();
-
-    // 1. Calculate tamper-proof trial period from Supabase user registration timestamp
-    const userCreatedAt = user.created_at ? new Date(user.created_at).getTime() : Date.now();
-    const trialStart = userCreatedAt;
-    const trialEnd = trialStart + (this.TRIAL_DAYS * 24 * 60 * 60 * 1000);
     const now = Date.now();
 
-    // 2. Fetch latest subscription from Supabase user_cloud_data or user_subscriptions
+    // 1. Fetch latest subscription from Supabase user_subscriptions table
     try {
       const client = window.supabaseClient || (window.AuthManager && window.AuthManager.client);
       if (client && user.id) {
-        // First try dedicated user_subscriptions table
         const { data: remoteSub, error } = await client
           .from('user_subscriptions')
           .select('*')
@@ -45,8 +39,8 @@ const SubscriptionManager = {
             userId: remoteSub.user_id,
             userEmail: remoteSub.user_email || user.email,
             status: remoteSub.status,
-            trialStart: remoteSub.trial_start ? new Date(remoteSub.trial_start).getTime() : trialStart,
-            trialEnd: remoteSub.trial_end ? new Date(remoteSub.trial_end).getTime() : trialEnd,
+            trialStart: remoteSub.trial_start ? new Date(remoteSub.trial_start).getTime() : (sub && sub.trialStart ? sub.trialStart : null),
+            trialEnd: remoteSub.trial_end ? new Date(remoteSub.trial_end).getTime() : (sub && sub.trialEnd ? sub.trialEnd : null),
             subscriptionEnd: remoteSub.subscription_end,
             planName: remoteSub.plan_name || 'Monthly Pro',
             price: Number(remoteSub.price_inr) || pricing.monthlyPrice,
@@ -57,17 +51,17 @@ const SubscriptionManager = {
         }
       }
     } catch (e) {
-      console.warn('[Subscription] Remote fetch warning (using local/calculated status):', e);
+      console.warn('[Subscription] Remote fetch warning (using local status):', e);
     }
 
-    // 3. Fallback to default calculated state if no record exists
+    // 2. If no subscription record or trial timestamps exist yet, prepare trial object
     if (!sub || !sub.status) {
       sub = {
         userId: user.id,
         userEmail: user.email,
-        status: (now < trialEnd) ? 'trialing' : 'expired',
-        trialStart: trialStart,
-        trialEnd: trialEnd,
+        status: 'trialing',
+        trialStart: null, // Will be stamped when PG details are asked
+        trialEnd: null,
         subscriptionEnd: null,
         planName: 'Monthly Pro',
         price: pricing.monthlyPrice,
@@ -77,15 +71,15 @@ const SubscriptionManager = {
       DB.saveSubscription(sub);
     }
 
-    // 4. Validate current status against real time
+    // 3. Validate current status against real-time expiration
     if (sub.status === 'active' && sub.subscriptionEnd) {
       const subEndTime = new Date(sub.subscriptionEnd).getTime();
       if (now > subEndTime) {
         sub.status = 'expired';
         DB.saveSubscription(sub);
       }
-    } else if (sub.status === 'trialing') {
-      if (now >= trialEnd) {
+    } else if (sub.status === 'trialing' && sub.trialEnd) {
+      if (now >= Number(sub.trialEnd)) {
         sub.status = 'expired';
         DB.saveSubscription(sub);
       }
@@ -94,7 +88,7 @@ const SubscriptionManager = {
     this._currentSub = sub;
     this._initialized = true;
 
-    // 5. Update UI Indicators and Enforce Paywall if expired
+    // 4. Update UI Indicators and Enforce Paywall only if expired
     this.updateHeaderBadge();
 
     if (this.isLocked()) {
@@ -103,6 +97,69 @@ const SubscriptionManager = {
       this.removePaywall();
     }
 
+    return sub;
+  },
+
+  // ── 1B. DYNAMICALLY START TRIAL WHEN PG DETAILS ARE ASKED ────
+  async startTrialWhenPGDetailsAsked(user) {
+    if (!user) {
+      user = window.AuthManager ? window.AuthManager.getUser() : null;
+    }
+    if (!user) return;
+
+    let sub = this._currentSub || DB.getSubscription();
+    const now = Date.now();
+
+    // If subscription already active (paid Pro), don't overwrite
+    if (sub && sub.status === 'active' && sub.subscriptionEnd && new Date(sub.subscriptionEnd).getTime() > now) {
+      return sub;
+    }
+
+    // If trial is already started and has valid timestamps, don't reset
+    if (sub && sub.trialStart && sub.trialEnd) {
+      return sub;
+    }
+
+    // 10-day trial starts NOW because PG details are being asked
+    const trialEnd = now + (this.TRIAL_DAYS * 24 * 60 * 60 * 1000);
+    const pricing = DB.getAppPricing();
+
+    sub = {
+      ...(sub || {}),
+      userId: user.id,
+      userEmail: user.email,
+      status: 'trialing',
+      trialStart: now,
+      trialEnd: trialEnd,
+      planName: 'Monthly Pro',
+      price: pricing.monthlyPrice
+    };
+
+    DB.saveSubscription(sub);
+    this._currentSub = sub;
+
+    // Persist dynamic trial window to Supabase
+    try {
+      const client = window.supabaseClient || (window.AuthManager && window.AuthManager.client);
+      if (client && user.id) {
+        await client.from('user_subscriptions').upsert({
+          user_id: user.id,
+          user_email: user.email,
+          status: 'trialing',
+          trial_start: new Date(now).toISOString(),
+          trial_end: new Date(trialEnd).toISOString(),
+          plan_name: 'Monthly Pro',
+          price_inr: pricing.monthlyPrice,
+          updated_at: new Date(now).toISOString()
+        });
+        console.log('[Subscription] 10-day trial officially started upon PG details prompt. Ends:', new Date(trialEnd).toLocaleDateString());
+      }
+    } catch (err) {
+      console.warn('[Subscription] Remote trial start upsert note:', err);
+    }
+
+    this.updateHeaderBadge();
+    this.removePaywall();
     return sub;
   },
 
@@ -127,9 +184,10 @@ const SubscriptionManager = {
 
     const sub = this._currentSub || DB.getSubscription() || {};
     const now = Date.now();
-    const trialEnd = sub.trialEnd || (user.created_at ? new Date(user.created_at).getTime() + (this.TRIAL_DAYS * 86400000) : now);
+    // If trialEnd is not yet stamped, default to 10 days from now (onboarding pending)
+    const trialEnd = sub.trialEnd ? Number(sub.trialEnd) : (now + (this.TRIAL_DAYS * 86400000));
 
-    const isTrial = sub.status === 'trialing' && now < trialEnd;
+    const isTrial = (sub.status === 'trialing' || !sub.status) && now < trialEnd;
     const daysLeft = isTrial ? Math.max(1, Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24))) : 0;
     const isPending = sub.status === 'pending_approval';
 
